@@ -1,0 +1,350 @@
+#!/usr/bin/env bash
+#
+#  Copyright 2020 WoozyMasta <woozymasta@gmail.com>
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+#  MA 02110-1301, USA.
+#
+
+set -e
+
+# Messages
+msg-start () {
+  [ "$silent" == 'true' ] && return
+  printf '\e[1;33m%-15s\e[m%-30s%s\n' 'Processing:' "$1" "$2"
+}
+msg-end () {
+  [ "$silent" == 'true' ] && return
+  printf '\e[1A\e[1;32m%-15s\e[m%-30s%s\n' 'Success:' "$1" "$2"
+}
+msg-fail () {
+  [ "$silent" == 'true' ] && return
+  printf '\e[1A\e[1;31m%-15s\e[m%-30s%s\n' 'Fail:' "$1" "$2"
+}
+success () {
+  [ "$silent" == 'true' ] && return
+  printf '\e[1;36m%s\e[m %s\n\n' "$1" "$2"
+}
+heading () {
+  [ "$silent" == 'true' ] && return
+  printf '%s \e[1;34m%s\e[m %s\n%-15s%-30s%s\n' \
+         "$1" "$2" 'started' 'STATE' 'RESOURCE' 'NAME'
+}
+fail () { >&2 printf '\n\e[1;31m%-10s\e[m%s\n' 'Error:' "$1"; exit 1; }
+
+# Check command is exist
+require () {
+  for command in "$@"; do
+    if ! [ -x "$(command -v "$command")" ]; then
+      >&2 printf '\n\e[1;31m%-10s\e[m%s\n' \
+      'Error:' "'$command' util not found, please install it first."
+      exit 1
+    fi
+  done
+}
+
+# Usage message
+usage () {
+  cat <<-EOF
+Dump kubernetes cluster resources
+
+Usage:
+$cmd [command] [[flags]]
+
+Available Commands:
+  dump-namespaces    Dump namespaced kubernetes resources
+  dump-cluster       Dump cluster wide kubernetes resources
+  dump               Dump all kubernetes resources
+
+Flags:
+  -h, --help                    This help
+  -s, --silent                  Execute silently, suppress all stdout messages
+  -d, --destination-dir         Path to dir for store dumps, default ./data
+  -f, --force-remove            Delete data directory before launch
+
+Kubernetes flags:
+  -n, --namespaces              List of kubernetes namespaces
+  -r, --namespaced-resources    List of namespaced resources
+  -k, --cluster-resources       List of cluster resources
+      --kube-config             Path to kubeconfig file
+      --kube-context            The name of the kubeconfig context to use
+      --kube-cluster            The name of the kubeconfig cluster to use
+      --kube-insecure-tls       Skip check server's certificate for validity
+
+Git commit flags:
+  -c, --git-commit              Commit changes
+  -b, --git-branch              Branch name
+      --git-commit-user         Commit author username
+      --git-commit-email        Commit author email
+      --git-remote-name         Remote repo name, defualt is origin
+      --git-remote-url          Remote repo URL
+  -p, --git-push                Push commits to origin
+
+Archivate flags:
+  -a, --archivate               Create archive of data dir
+      --archive-rotate-days     Rotate archives older than N days
+      --archive-type            Archive type xz, gzip or bzip2, default xz
+
+Report bugs at:
+  https://github.com/WoozyMasta/kube-dump/issues
+  <woozymasta@gmail.com>
+
+EOF
+  exit 0
+}
+
+# Set common vars
+real_path=$(readlink -f "$0")
+working_dir="$(dirname "$real_path")"
+cmd="$(basename "$real_path")"
+timestamp="$(date '+%Y.%m.%d_%H-%M')"
+
+# Parse args commands
+if [[ "$1" =~ ^(dump|dump-namespaces|dump-cluster)$ ]]; then
+  mode=$1; else usage; fi
+
+# Parse args flags
+args=$(
+  getopt \
+    -l "namespaces:,namespaced-resources:,cluster-resources:" \
+    -l "kube-config:,kube-context:,kube-cluster:,kube-insecure-tls" \
+    -l "help,silent,destination:,force-remove," \
+    -l "git-commit,git-branch:,git-commit-user:,git-commit-email:" \
+    -l "git-remote-name:,git-remote-url:,git-push" \
+    -l "archivate,archive-rotate-days:,archive-type:" \
+    -o "n:,r:,k:,h,s,d:,f,c,b:,p:,a" -- "${@:2}"
+)
+eval set -- "$args"
+while [ $# -ge 1 ]; do
+  case "$1" in
+# Resources
+    -n|--namespaces)            namespaces+="$2,";               shift; shift;;
+    -r|--namespaced-resources)  namespaced_resources+="$2,";     shift; shift;;
+    -k|--cluster-resources)     cluster_resources+="$2,";        shift; shift;;
+# Kubectl opts
+       --kube-config)           kube_config="$2";                shift; shift;;
+       --kube-context)          kube_context="$2";               shift; shift;;
+       --kube-cluster)          kube_cluster="$2";               shift; shift;;
+       --kube-insecure-tls)     kube_insecure_tls='true';        shift;;
+# Common opts
+    -h|--help)                  usage;;
+    -s|--silent)                silent='true';                   shift;;
+    -d|--destination-dir)       destination_dir="$2";            shift; shift;;
+# Dump opts
+    -f|--force-remove)          force_remove='true';             shift;;
+# Commit opts
+# TODO
+    -c|--git-commit)            git_commit='true';               shift;;
+    -b|--git-branch)            git_branch="$2";                 shift; shift;;
+       --git-commit-user)       git_commit_user="$2";            shift; shift;;
+       --git-commit-email)      git_commit_email="$2";           shift; shift;;
+       --git-remote-name)       git_remote_name="$2";            shift; shift;;
+       --git-remote-url)        git_remote_url='$2';             shift; shift;;
+    -p|--git-push)              git_push='true';                 shift;;
+# Archivate opts
+    -a|--archivate)             archivate='true';                shift;;
+       --archive-rotate-days)   archive_rotate="$2";             shift; shift;;
+       --archive-type)          archive_type="$2";               shift; shift;;
+# Final
+       --)                                                       shift; break;;
+       -*)                     fail "invalid option $1";;
+  esac
+done
+
+if [ -n "$*" ]; then
+  fail "extra arguments $*"
+fi
+
+# Check dependency
+require kubectl jq yq
+require git
+require zip
+
+# Kubectl args
+[ -n "${kube_config:-$KUBE_CONFIG}" ] && k_args+=("--kubeconfig=${kube_config:-$KUBE_CONFIG}")
+[ -n "${kube_context:-$KUBE_CONTEXT}" ] && k_args+=("--context=${kube_context:-$KUBE_CONTEXT}")
+[ -n "${kube_cluster:-$KUBE_CLUSTER}" ] && k_args+=("--cluster=${kube_cluster:-$KUBE_CLUSTER}")
+[ "${kube_insecure_tls:-$KUBE_INSECURE_TLS}" == 'true' ] && k_args+=("--insecure-skip-tls-verify=false")
+
+# Check kube config context
+if [ -n "$kube_context" ]; then
+  kubectl config view --kubeconfig="${kube_config:-$HOME/.kube/config}" -o json | \
+  jq --exit-status --monochrome-output --raw-output '.contexts[].name' | \
+  grep --quiet "^$kube_context$" && \
+  context="$kube_context" || \
+  fail "Context $kube_context not exist in kubeconfig"
+elif kubectl config current-context "${k_args[@]}" >/dev/null 2>&1; then
+  context=$(kubectl config current-context "${k_args[@]}")
+else
+  fail "Current context not configured in kubeconfig"
+fi
+
+# Check kube config cluster
+if [ -n "$kube_cluster" ]; then
+  kubectl config view --kubeconfig="${kube_config:-$HOME/.kube/config}" -o json | \
+  jq --exit-status --monochrome-output --raw-output '.clusters[].name' | \
+  grep --quiet "^$kube_cluster$" || \
+  fail "Cluster $kube_cluster not exist in kubeconfig"
+fi
+
+# Set namespaces list
+# shellcheck disable=SC2153
+if [ -z "${namespaces:-$NAMESPACES}" ]; then
+  if ! namespaces=$(kubectl get ns -o jsonpath=\{.items[*].metadata.name\} "${k_args[@]}"); then
+    fail 'Cant get namespaces from cluster'
+  fi
+else
+  namespaces=${namespaces:-$NAMESPACES}
+fi
+
+# Set namespaced resources
+# https://kubernetes.io/docs/reference/kubectl/overview/#resource-types
+if [ -z "${namespaced_resources:-$NAMESPACED_RESOURCES}" ]; then
+  namespaced_resources='configmaps, secrets, deployments, daemonsets, statefulsets,
+    replicationcontrollers, ingresses, services, cronjobs, jobs, poddisruptionbudgets,
+    horizontalpodautoscalers, persistentvolumeclaims, limitranges, resourcequotas,
+    networkpolicies, serviceaccounts, roles, rolebindings'
+else
+  namespaced_resources=${namespaced_resources:-$NAMESPACED_RESOURCES}
+fi
+
+# Set cluster resources
+if [ -z "${cluster_resources:-$CLUSTER_RESOURCES}" ]; then
+  cluster_resources='customresourcedefinitions, validatingwebhookconfigurations,
+    mutatingwebhookconfigurations, podsecuritypolicies, clusterrolebindings, clusterroles,
+    priorityclasses, csidrivers, storageclasses, runtimeclasses, namespaces'
+else
+  cluster_resources=${cluster_resources:-$CLUSTER_RESOURCES}
+fi
+
+# Dump dir
+destination_dir="${destination_dir:-$working_dir/data}"
+[ "$force_remove" == 'true' ] && rm -rf "$destination_dir"
+mkdir -p "$destination_dir"
+
+# Work with namespaced reosurces
+if [[ "$mode" =~ ^(dump|dump-namespaces)$ ]]; then
+
+  for ns in ${namespaces//,/ }; do
+    ! kubectl get ns "$ns" "${k_args[@]}" > /dev/null && break
+    [ -d "$destination_dir/$ns" ] || mkdir -p "$destination_dir/$ns"
+    heading 'Dump namespace' "$ns" 
+
+    for resource in ${namespaced_resources//,/ }; do
+
+      while read -r name; do
+        [ -z "$name" ] && continue
+
+        if [ "$resource" == 'secret' ]; then
+          type=$(kubectl get --namespace="${ns}" -o jsonpath="{.type}" secret "$name" "${k_args[@]}")
+          [ "$type" == 'kubernetes.io/service-account-token' ] && continue
+          unset type
+        fi
+
+        msg-start "$resource" "$name"
+
+        kubectl --namespace="${ns}" get -o=json "$resource" "$name" "${k_args[@]}" 2>/dev/null | \
+        jq --exit-status --compact-output --monochrome-output \
+          --raw-output --sort-keys 2>/dev/null \
+          'del(
+            .metadata.annotations."control-plane.alpha.kubernetes.io/leader",
+            .metadata.annotations."deployment.kubernetes.io/revision",
+            .metadata.annotations."kubectl.kubernetes.io/last-applied-configuration",
+            .metadata.annotations."kubernetes.io/service-account.uid",
+            .metadata.annotations."pv.kubernetes.io/bind-completed",
+            .metadata.annotations."pv.kubernetes.io/bound-by-controller",
+            .metadata.finalizers,
+            .metadata.managedFields,
+            .metadata.creationTimestamp,
+            .metadata.generation,
+            .metadata.resourceVersion,
+            .metadata.selfLink,
+            .metadata.uid,
+            .spec.clusterIP,
+            .spec.progressDeadlineSeconds,
+            .spec.revisionHistoryLimit,
+            .spec.template.metadata.annotations."kubectl.kubernetes.io/restartedAt",
+            .spec.template.metadata.creationTimestamp,
+            .spec.volumeName,
+            .spec.volumeMode,
+            .status
+          )' | \
+      yq eval --prettyPrint --no-colors --exit-status - \
+        >"$destination_dir/$ns/${name//:/-}_$resource".yaml 2>/dev/null && \
+        msg-end "$resource" "$name" || msg-fail "$resource" "$name"
+
+      done < <(
+        kubectl --namespace="${ns}" get "$resource" \
+          -o custom-columns=NAME:.metadata.name --no-headers "${k_args[@]}" 2>/dev/null
+        )
+    done
+    success "$ns" 'Namespace resources dump completed'
+  done
+
+fi
+if [[ "$mode" =~ ^(dump|dump-cluster)$ ]]; then
+
+  # Work with cluster reosurces
+  heading 'Dump cluster data' "$context"
+  for resource in ${cluster_resources//,/ }; do
+    while read -r name; do
+      [ -d "$destination_dir/cluster" ] || mkdir -p "$destination_dir/cluster"
+      msg-start "$resource" "$name"
+
+      kubectl get -o=json "$resource" "${k_args[@]}" | \
+        jq --exit-status --compact-output --monochrome-output \
+          --raw-output --sort-keys 2>/dev/null \
+        'del(
+          .items[].metadata.annotations."kubectl.kubernetes.io/last-applied-configuration",
+          .items[].metadata.annotations."control-plane.alpha.kubernetes.io/leader",
+          .items[].metadata.uid,
+          .items[].metadata.selfLink,
+          .items[].metadata.resourceVersion,
+          .items[].metadata.creationTimestamp,
+          .items[].metadata.generation
+        )' | \
+      yq eval --prettyPrint --no-colors --exit-status - \
+        >"$destination_dir/cluster/${name//:/-}_$resource".yaml 2>/dev/null && \
+      msg-end "$resource" "$name" || msg-fail "$resource" "$name"
+    done < <(
+      kubectl get "$resource" \
+        -o custom-columns=NAME:.metadata.name --no-headers "${k_args[@]}" 2>/dev/null
+      )
+  done
+  success "$context" 'Namespace resources dump completed'
+fi
+
+# TODO
+# Git
+if [ "$git_commit" == 'true' ]; then
+  printf '%s\n' "Not realized"
+fi
+
+# Archivate
+if [ "$archivate" == 'true' ]; then
+  archive="${destination_dir%/*}/dump_$timestamp.tar.${archive_type:-xz}"
+  tar cJfP "$archive" -C "${destination_dir%/*}" "${destination_dir/*\//}"
+  success "$archive" "Archive created."
+  if [ -n "$archive_rotate" ]; then
+    find "${destination_dir%/*}" -mindepth 1 -type f -name "*.tar.xz" \
+        -mtime +"$archive_rotate" -delete && \
+    success 'Rotatinon.' \
+    "Older than $archive_rotate days *.tar.${archive_type:-xz} archives removed."
+  fi
+fi
+
+success 'Done!' 'All tasks completed.'
+
+exit 0
