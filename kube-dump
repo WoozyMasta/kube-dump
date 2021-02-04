@@ -23,15 +23,15 @@ set -e
 # Messages
 msg-start () {
   [ "$silent" == 'true' ] && return
-  printf '\e[1;33m%-15s\e[m%-30s%s\n' 'Processing:' "$1" "$2"
+  printf '\e[1;33m%-15s\e[m%-30s%s\n' 'Processing' "$1" "$2"
 }
 msg-end () {
   [ "$silent" == 'true' ] && return
-  printf '\e[1A\e[1;32m%-15s\e[m%-30s%s\n' 'Success:' "$1" "$2"
+  printf '\e[1A\e[1;32m%-15s\e[m%-30s%s\n' 'Success' "$1" "$2"
 }
 msg-fail () {
   [ "$silent" == 'true' ] && return
-  printf '\e[1A\e[1;31m%-15s\e[m%-30s%s\n' 'Fail:' "$1" "$2"
+  printf '\e[1A\e[1;31m%-15s\e[m%-30s%s\n' 'Fail' "$1" "$2"
 }
 success () {
   [ "$silent" == 'true' ] && return
@@ -42,6 +42,7 @@ heading () {
   printf '%s \e[1;34m%s\e[m %s\n%-15s%-30s%s\n' \
          "$1" "$2" 'started' 'STATE' 'RESOURCE' 'NAME'
 }
+warn () { >&2 printf '\e[1;31m%-10s\e[m%s\n' 'Warning:' "$1"; }
 fail () { >&2 printf '\n\e[1;31m%-10s\e[m%s\n' 'Error:' "$1"; exit 1; }
 
 # Check command is exist
@@ -49,7 +50,7 @@ require () {
   for command in "$@"; do
     if ! [ -x "$(command -v "$command")" ]; then
       >&2 printf '\n\e[1;31m%-10s\e[m%s\n' \
-      'Error:' "'$command' util not found, please install it first."
+      'Error:' "'$command' util not found, please install it first"
       exit 1
     fi
   done
@@ -169,8 +170,10 @@ fi
 
 # Check dependency
 require kubectl jq yq
-require git
-require zip
+[ "$git_commit" == 'true' ] && require git
+[ "$archivate" == 'true' ] && [ "$archive_type" == 'xz' ] && require tar xz
+[ "$archivate" == 'true' ] && [ "$archive_type" == 'gzip' ] && require tar gzip
+[ "$archivate" == 'true' ] && [ "$archive_type" == 'bzip2' ] && require tar bzip2
 
 # Kubectl args
 [ -n "${kube_config:-$KUBE_CONFIG}" ] && k_args+=("--kubeconfig=${kube_config:-$KUBE_CONFIG}")
@@ -234,13 +237,18 @@ destination_dir="${destination_dir:-$working_dir/data}"
 [ "$force_remove" == 'true' ] && rm -rf "$destination_dir"
 mkdir -p "$destination_dir"
 
+score=0
+
 # Work with namespaced reosurces
 if [[ "$mode" =~ ^(dump|dump-namespaces)$ ]]; then
 
   for ns in ${namespaces//,/ }; do
-    ! kubectl get ns "$ns" "${k_args[@]}" > /dev/null && break
+    if ! kubectl get ns "$ns" "${k_args[@]}" >/dev/null 2>&1; then
+      warn "Namespace \"$ns\" not found"
+      continue
+    fi
     [ -d "$destination_dir/$ns" ] || mkdir -p "$destination_dir/$ns"
-    heading 'Dump namespace' "$ns" 
+    heading 'Dump namespace' "$ns"
 
     for resource in ${namespaced_resources//,/ }; do
 
@@ -291,12 +299,13 @@ if [[ "$mode" =~ ^(dump|dump-namespaces)$ ]]; then
         )
     done
     success "$ns" 'Namespace resources dump completed'
+    score=$((score+1))
   done
-
 fi
+
+# Work with cluster reosurces
 if [[ "$mode" =~ ^(dump|dump-cluster)$ ]]; then
 
-  # Work with cluster reosurces
   heading 'Dump cluster data' "$context"
   for resource in ${cluster_resources//,/ }; do
     while read -r name; do
@@ -324,6 +333,7 @@ if [[ "$mode" =~ ^(dump|dump-cluster)$ ]]; then
       )
   done
   success "$context" 'Namespace resources dump completed'
+  score=$((score+1))
 fi
 
 # TODO
@@ -341,10 +351,14 @@ if [ "$archivate" == 'true' ]; then
     find "${destination_dir%/*}" -mindepth 1 -type f -name "*.tar.xz" \
         -mtime +"$archive_rotate" -delete && \
     success 'Rotatinon.' \
-    "Older than $archive_rotate days *.tar.${archive_type:-xz} archives removed."
+    "Older than $archive_rotate days *.tar.${archive_type:-xz} archives removed"
   fi
+  score=$((score+1))
 fi
 
-success 'Done!' 'All tasks completed.'
-
-exit 0
+if [ "$score" -ge 0 ]; then
+  success 'Done!' "$score task completed"
+  exit 0
+else
+  fail 'Not one task runned'
+fi
