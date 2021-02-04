@@ -2,6 +2,7 @@
 
 Backup a Kubernetes cluster as yaml manifests
 
+![Logo](./extras/logo-wide.png)
 ## Commands and flags
 
 ```
