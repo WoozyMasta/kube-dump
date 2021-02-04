@@ -3,6 +3,25 @@
 Backup a Kubernetes cluster as yaml manifests
 
 ![Logo](./extras/logo-wide.png)
+
+[![asciicast](https://asciinema.org/a/DEOjycqfHNa8Rrietk3mbaPvp.svg)](https://asciinema.org/a/DEOjycqfHNa8Rrietk3mbaPvp)
+
+## Dependencies
+
+Required dependencies:
+
+* [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) - Kubernetes command-line tool
+* [jq](https://github.com/stedolan/jq) - Command-line JSON processor
+* [yq](https://github.com/mikefarah/yq) - Command-line YAML processor
+
+Optional dependencies:
+
+* git - Used to store backups as a git repository 
+* tar - Used to create backup archives with one of the compression libraries:
+  * xz - a lossless data compression file format based on the LZMA algorithm
+  * gzip - single-file/stream lossless data compression utility
+  * bzip2 - compression program that uses the Burrows–Wheeler algorithm
+
 ## Commands and flags
 
 ```
