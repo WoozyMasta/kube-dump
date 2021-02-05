@@ -2,7 +2,7 @@
 
 Backup a Kubernetes cluster as yaml manifests
 
-![Logo](./extras/logo-wide.png)
+![Logo](https://raw.githubusercontent.com/WoozyMasta/kube-dump/master/extras/logo-wide.png)
 
 [![asciicast](https://asciinema.org/a/DEOjycqfHNa8Rrietk3mbaPvp.svg)](https://asciinema.org/a/DEOjycqfHNa8Rrietk3mbaPvp)
 
