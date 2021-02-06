@@ -23,27 +23,28 @@ set -e
 # Messages
 msg-start () {
   [ "$silent" == 'true' ] && return
-  printf '\e[1;33m%-15s\e[m%-30s%s\n' 'Processing' "$1" "$2"
+  printf '\e[1;33m%-15s\e[m%-30s%s\n' 'Processing' "$1" "${@:2}"
 }
 msg-end () {
   [ "$silent" == 'true' ] && return
-  printf '\e[1A\e[1;32m%-15s\e[m%-30s%s\n' 'Success' "$1" "$2"
+  printf '\e[1A\e[1;32m%-15s\e[m%-30s%s\n' 'Success' "$1" "${@:2}"
 }
 msg-fail () {
   [ "$silent" == 'true' ] && return
-  printf '\e[1A\e[1;31m%-15s\e[m%-30s%s\n' 'Fail' "$1" "$2"
+  printf '\e[1A\e[1;31m%-15s\e[m%-30s%s\n' 'Fail' "$1" "${@:2}"
 }
 success () {
   [ "$silent" == 'true' ] && return
-  printf '\e[1;36m%s\e[m %s\n\n' "$1" "$2"
+  printf '%s \e[1;36m%s\e[m %s\n\n' "$1" "$2" "${@:3}"
+  score=$((score+1))
 }
 heading () {
   [ "$silent" == 'true' ] && return
   printf '%s \e[1;34m%s\e[m %s\n%-15s%-30s%s\n' \
          "$1" "$2" 'started' 'STATE' 'RESOURCE' 'NAME'
 }
-warn () { >&2 printf '\e[1;31m%-10s\e[m%s\n' 'Warning:' "$1"; }
-fail () { >&2 printf '\n\e[1;31m%-10s\e[m%s\n' 'Error:' "$1"; exit 1; }
+warn () { >&2 printf '\e[1;31m%-10s\e[m%s\n' 'Warning:' "$*"; }
+fail () { >&2 printf '\n\e[1;31m%-10s\e[m%s\n' 'Error:' "$*"; exit 1; }
 
 # Check command is exist
 require () {
@@ -62,7 +63,7 @@ usage () {
 Dump kubernetes cluster resources
 
 Usage:
-$cmd [command] [[flags]]
+  $cmd [command] [[flags]]
 
 Available Commands:
   dump-namespaces    Dump namespaced kubernetes resources
@@ -73,7 +74,7 @@ Flags:
   -h, --help                    This help
   -s, --silent                  Execute silently, suppress all stdout messages
   -d, --destination-dir         Path to dir for store dumps, default ./data
-  -f, --force-remove            Delete data directory before launch
+  -f, --force-remove            Delete resources data directory before launch
 
 Kubernetes flags:
   -n, --namespaces              List of kubernetes namespaces
@@ -86,17 +87,20 @@ Kubernetes flags:
 
 Git commit flags:
   -c, --git-commit              Commit changes
+  -p, --git-push                Commit changes and push to origin
   -b, --git-branch              Branch name
       --git-commit-user         Commit author username
       --git-commit-email        Commit author email
       --git-remote-name         Remote repo name, defualt is origin
       --git-remote-url          Remote repo URL
-  -p, --git-push                Push commits to origin
 
 Archivate flags:
   -a, --archivate               Create archive of data dir
       --archive-rotate-days     Rotate archives older than N days
-      --archive-type            Archive type xz, gzip or bzip2, default xz
+      --archive-type            Archive type xz, gz or bz2, default is tar
+
+Example:
+  $cmd dump-namespaces -n default,dev -d /mnt/dump -spa --archive-type gz
 
 Report bugs at:
   https://github.com/WoozyMasta/kube-dump/issues
@@ -107,8 +111,9 @@ EOF
 }
 
 # Set common vars
-real_path=$(readlink -f "$0")
-working_dir="$(dirname "$real_path")"
+real_path="$(readlink -f "$0")"
+# working_dir="$(dirname "$real_path")"
+working_dir="$(pwd)"
 cmd="$(basename "$real_path")"
 timestamp="$(date '+%Y.%m.%d_%H-%M')"
 
@@ -122,45 +127,44 @@ args=$(
     -l "namespaces:,namespaced-resources:,cluster-resources:" \
     -l "kube-config:,kube-context:,kube-cluster:,kube-insecure-tls" \
     -l "help,silent,destination:,force-remove," \
-    -l "git-commit,git-branch:,git-commit-user:,git-commit-email:" \
-    -l "git-remote-name:,git-remote-url:,git-push" \
+    -l "git-commit,git-push,git-branch:,git-commit-user:,git-commit-email:" \
+    -l "git-remote-name:,git-remote-url:" \
     -l "archivate,archive-rotate-days:,archive-type:" \
-    -o "n:,r:,k:,h,s,d:,f,c,b:,p:,a" -- "${@:2}"
+    -o "n:,r:,k:,h,s,d:,f,c,p,b:,a" -- "${@:2}"
 )
 eval set -- "$args"
 while [ $# -ge 1 ]; do
   case "$1" in
 # Resources
-    -n|--namespaces)            namespaces+="$2,";               shift; shift;;
-    -r|--namespaced-resources)  namespaced_resources+="$2,";     shift; shift;;
-    -k|--cluster-resources)     cluster_resources+="$2,";        shift; shift;;
+    -n|--namespaces)            namespaces+="$2,";                shift; shift;;
+    -r|--namespaced-resources)  namespaced_resources+="$2,";      shift; shift;;
+    -k|--cluster-resources)     cluster_resources+="$2,";         shift; shift;;
 # Kubectl opts
-       --kube-config)           kube_config="$2";                shift; shift;;
-       --kube-context)          kube_context="$2";               shift; shift;;
-       --kube-cluster)          kube_cluster="$2";               shift; shift;;
-       --kube-insecure-tls)     kube_insecure_tls='true';        shift;;
+       --kube-config)           kube_config="$2";                 shift; shift;;
+       --kube-context)          kube_context="$2";                shift; shift;;
+       --kube-cluster)          kube_cluster="$2";                shift; shift;;
+       --kube-insecure-tls)     kube_insecure_tls='true';                shift;;
 # Common opts
     -h|--help)                  usage;;
-    -s|--silent)                silent='true';                   shift;;
-    -d|--destination-dir)       destination_dir="$2";            shift; shift;;
+    -s|--silent)                silent='true';                           shift;;
+    -d|--destination-dir)       destination_dir="$2";             shift; shift;;
 # Dump opts
-    -f|--force-remove)          force_remove='true';             shift;;
+    -f|--force-remove)          force_remove='true';                     shift;;
 # Commit opts
-# TODO
-    -c|--git-commit)            git_commit='true';               shift;;
-    -b|--git-branch)            git_branch="$2";                 shift; shift;;
-       --git-commit-user)       git_commit_user="$2";            shift; shift;;
-       --git-commit-email)      git_commit_email="$2";           shift; shift;;
-       --git-remote-name)       git_remote_name="$2";            shift; shift;;
-       --git-remote-url)        git_remote_url='$2';             shift; shift;;
-    -p|--git-push)              git_push='true';                 shift;;
+    -c|--git-commit)            git_commit='true';                       shift;;
+    -p|--git-push)              git_push='true';                         shift;;
+    -b|--git-branch)            git_branch="$2";                  shift; shift;;
+       --git-commit-user)       git_commit_user="$2";             shift; shift;;
+       --git-commit-email)      git_commit_email="$2";            shift; shift;;
+       --git-remote-name)       git_remote_name="$2";             shift; shift;;
+       --git-remote-url)        git_remote_url="$2";              shift; shift;;
 # Archivate opts
-    -a|--archivate)             archivate='true';                shift;;
-       --archive-rotate-days)   archive_rotate="$2";             shift; shift;;
-       --archive-type)          archive_type="$2";               shift; shift;;
+    -a|--archivate)             archivate='true';                        shift;;
+       --archive-rotate-days)   archive_rotate="$2";              shift; shift;;
+       --archive-type)          archive_type="$2";                shift; shift;;
 # Final
-       --)                                                       shift; break;;
-       -*)                     fail "invalid option $1";;
+       --)                                                        shift; break;;
+       -*)                      fail "invalid option $1";;
   esac
 done
 
@@ -168,22 +172,78 @@ if [ -n "$*" ]; then
   fail "extra arguments $*"
 fi
 
+# Read vars from env
+# shellcheck disable=SC1090,SC1091
+[ -f "$working_dir/.env" ] && . "$working_dir/.env"
+silent="${silent:-$SILENT}"
+kube_config="${kube_config:-$KUBE_CONFIG}"
+kube_context="${kube_context:-$KUBE_CONTEXT}"
+kube_cluster="${kube_cluster:-$KUBE_CLUSTER}"
+kube_insecure_tls="${kube_insecure_tls:-$KUBE_INSECURE_TLS}"
+git_commit="${git_commit:-$GIT_COMMIT}"
+git_branch="${git_branch:-$GIT_BRANCH}"
+git_commit_user="${git_commit_user:-$GIT_COMMIT_USER}"
+git_commit_email="${git_commit_email:-$GIT_COMMIT_EMAIL}"
+git_remote_name="${git_remote_name:-$GIT_REMOTE_NAME}"
+git_remote_url="${git_remote_url:-$GIT_REMOTE_URL}"
+git_push="${git_push:-$GIT_PUSH}"
+archivate="${archivate:-$ARCHIVATE}"
+archive_rotate="${archive_rotate:-$ARCHIVE_ROTATE}"
+archive_type="${archive_type:-$ARCHIVE_TYPE}"
+
 # Check dependency
 require kubectl jq yq
-[ "$git_commit" == 'true' ] && require git
-[ "$archivate" == 'true' ] && [ "$archive_type" == 'xz' ] && require tar xz
-[ "$archivate" == 'true' ] && [ "$archive_type" == 'gzip' ] && require tar gzip
-[ "$archivate" == 'true' ] && [ "$archive_type" == 'bzip2' ] && require tar bzip2
+[ "$git_commit" == 'true' ] && \
+require git
+[ "$archivate" == 'true' ] && [ "$archive_type" == 'xz' ] && \
+require tar xz
+[ "$archivate" == 'true' ] && [ "$archive_type" == 'gzip' ] && \
+require tar gzip
+[ "$archivate" == 'true' ] && [ "$archive_type" == 'bzip2' ] && \
+require tar bzip2
 
 # Kubectl args
-[ -n "${kube_config:-$KUBE_CONFIG}" ] && k_args+=("--kubeconfig=${kube_config:-$KUBE_CONFIG}")
-[ -n "${kube_context:-$KUBE_CONTEXT}" ] && k_args+=("--context=${kube_context:-$KUBE_CONTEXT}")
-[ -n "${kube_cluster:-$KUBE_CLUSTER}" ] && k_args+=("--cluster=${kube_cluster:-$KUBE_CLUSTER}")
-[ "${kube_insecure_tls:-$KUBE_INSECURE_TLS}" == 'true' ] && k_args+=("--insecure-skip-tls-verify=false")
+[ -n "$kube_config" ] && k_args+=("--kubeconfig=$kube_config")
+[ -n "$kube_context" ] && k_args+=("--context=$kube_context")
+[ -n "$kube_cluster" ] && k_args+=("--cluster=$kube_cluster")
+[ "$kube_insecure_tls" == 'true' ] && \
+  k_args+=("--insecure-skip-tls-verify=false")
+
+# Use serviceaccount
+if [ -n "$KUBERNETES_SERVICE_HOST" ] && \
+   [ -n "$KUBERNETES_SERVICE_PORT" ] && \
+   [ -z "$kube_config" ]
+then
+
+  require curl
+  kube_api="$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT"
+  kube_api_token=$(</var/run/secrets/kubernetes.io/serviceaccount/token)
+  kube_api_ca=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+  if _api_code=$(
+      curl --fail --location --output /dev/null --write-out '%{http_code}\n' \
+      --cacert $kube_api_ca --silent "https://$kube_api/livez"
+    )
+  then
+    kubectl config set-cluster "${kube_context:-k8s}" \
+      --server="https://$kube_api" --certificate-authority="$kube_api_ca"
+    kubectl config set-credentials "${kube_user:-kube-dump}" \
+      --token="$kube_api_token"
+    kubectl config set-context "${kube_context:-k8s}" \
+      --cluster "${kube_cluster:-k8s}" --user "${kube_user:-kube-dump}"
+    kubectl config use-context "${kube_context:-k8s}"
+
+  else
+    fail 'Found running on kubernetes cluster but attempting connect' \
+      "to API $kube_api failed with code $_api_code"
+
+  fi
+fi
 
 # Check kube config context
 if [ -n "$kube_context" ]; then
-  kubectl config view --kubeconfig="${kube_config:-$HOME/.kube/config}" -o json | \
+  kubectl config view \
+    --kubeconfig="${kube_config:-$HOME/.kube/config}" --output='json' | \
   jq --exit-status --monochrome-output --raw-output '.contexts[].name' | \
   grep --quiet "^$kube_context$" && \
   context="$kube_context" || \
@@ -196,16 +256,21 @@ fi
 
 # Check kube config cluster
 if [ -n "$kube_cluster" ]; then
-  kubectl config view --kubeconfig="${kube_config:-$HOME/.kube/config}" -o json | \
+  kubectl config view \
+    --kubeconfig="${kube_config:-$HOME/.kube/config}" --output='json' | \
   jq --exit-status --monochrome-output --raw-output '.clusters[].name' | \
   grep --quiet "^$kube_cluster$" || \
   fail "Cluster $kube_cluster not exist in kubeconfig"
 fi
 
+# Try get cluster info
+kubectl cluster-info >/dev/null || fail "Cluster $kube_api not accessible"
+
 # Set namespaces list
-# shellcheck disable=SC2153
 if [ -z "${namespaces:-$NAMESPACES}" ]; then
-  if ! namespaces=$(kubectl get ns -o jsonpath=\{.items[*].metadata.name\} "${k_args[@]}"); then
+  if ! namespaces=$(kubectl get namespaces \
+      --output='jsonpath=\{.items[*].metadata.name\}' "${k_args[@]}")
+  then
     fail 'Cant get namespaces from cluster'
   fi
 else
@@ -215,10 +280,11 @@ fi
 # Set namespaced resources
 # https://kubernetes.io/docs/reference/kubectl/overview/#resource-types
 if [ -z "${namespaced_resources:-$NAMESPACED_RESOURCES}" ]; then
-  namespaced_resources='configmaps, secrets, deployments, daemonsets, statefulsets,
-    replicationcontrollers, ingresses, services, cronjobs, jobs, poddisruptionbudgets,
-    horizontalpodautoscalers, persistentvolumeclaims, limitranges, resourcequotas,
-    networkpolicies, serviceaccounts, roles, rolebindings'
+  namespaced_resources='configmaps, secrets, deployments, daemonsets,
+    statefulsets, replicationcontrollers, ingresses, services, cronjobs, jobs,
+    poddisruptionbudgets, horizontalpodautoscalers, persistentvolumeclaims,
+    limitranges, resourcequotas, networkpolicies, serviceaccounts, roles,
+    rolebindings'
 else
   namespaced_resources=${namespaced_resources:-$NAMESPACED_RESOURCES}
 fi
@@ -226,44 +292,60 @@ fi
 # Set cluster resources
 if [ -z "${cluster_resources:-$CLUSTER_RESOURCES}" ]; then
   cluster_resources='customresourcedefinitions, validatingwebhookconfigurations,
-    mutatingwebhookconfigurations, podsecuritypolicies, clusterrolebindings, clusterroles,
-    priorityclasses, csidrivers, storageclasses, runtimeclasses, namespaces'
+    mutatingwebhookconfigurations, podsecuritypolicies, clusterrolebindings,
+    clusterroles, priorityclasses, csidrivers, storageclasses, runtimeclasses,
+    namespaces'
 else
   cluster_resources=${cluster_resources:-$CLUSTER_RESOURCES}
 fi
 
 # Dump dir
-destination_dir="${destination_dir:-$working_dir/data}"
-[ "$force_remove" == 'true' ] && rm -rf "$destination_dir"
+destination_dir="${destination_dir:-${DESTINATION_DIR:-$working_dir/data}}"
+if [ "${force_remove:-$FORCE_REMOVE}" == 'true' ]; then
+  warn "Destination $destination_dir directory will be removed"
+  sleep 3
+  find "$destination_dir" -mindepth 1 ! -name '.git' -type d -delete
+fi
 mkdir -p "$destination_dir"
 
+success 'Dump data in' "$destination_dir" 'directory'
 score=0
 
 # Work with namespaced reosurces
 if [[ "$mode" =~ ^(dump|dump-namespaces)$ ]]; then
 
   for ns in ${namespaces//,/ }; do
+    # Check namespace exist
     if ! kubectl get ns "$ns" "${k_args[@]}" >/dev/null 2>&1; then
       warn "Namespace \"$ns\" not found"
       continue
     fi
+    # Create namespace dir
     [ -d "$destination_dir/$ns" ] || mkdir -p "$destination_dir/$ns"
     heading 'Dump namespace' "$ns"
 
+    # Iterate over resources
     for resource in ${namespaced_resources//,/ }; do
 
+      # Iterate over only accessible resources
       while read -r name; do
         [ -z "$name" ] && continue
 
+        # Skip service-account-token secrets
         if [ "$resource" == 'secret' ]; then
-          type=$(kubectl get --namespace="${ns}" -o jsonpath="{.type}" secret "$name" "${k_args[@]}")
+          type=$(
+            kubectl get --namespace="${ns}" --output='jsonpath="{.type}"' \
+              secret "$name" "${k_args[@]}"
+            )
           [ "$type" == 'kubernetes.io/service-account-token' ] && continue
           unset type
         fi
 
         msg-start "$resource" "$name"
 
-        kubectl --namespace="${ns}" get -o=json "$resource" "$name" "${k_args[@]}" 2>/dev/null | \
+        # Save resource to file
+        kubectl --namespace="${ns}" get \
+          --output='json' "$resource" "$name" "${k_args[@]}" 2>/dev/null | \
         jq --exit-status --compact-output --monochrome-output \
           --raw-output --sort-keys 2>/dev/null \
           'del(
@@ -295,11 +377,11 @@ if [[ "$mode" =~ ^(dump|dump-namespaces)$ ]]; then
 
       done < <(
         kubectl --namespace="${ns}" get "$resource" \
-          -o custom-columns=NAME:.metadata.name --no-headers "${k_args[@]}" 2>/dev/null
+          --output='custom-columns=NAME:.metadata.name' \
+          --no-headers "${k_args[@]}" 2>/dev/null
         )
     done
-    success "$ns" 'Namespace resources dump completed'
-    score=$((score+1))
+    success 'Namespace' "$ns" 'resources dump completed'
   done
 fi
 
@@ -307,12 +389,16 @@ fi
 if [[ "$mode" =~ ^(dump|dump-cluster)$ ]]; then
 
   heading 'Dump cluster data' "$context"
+  # Iterate over resources
   for resource in ${cluster_resources//,/ }; do
+
+    # Iterate over only accessible resources
     while read -r name; do
       [ -d "$destination_dir/cluster" ] || mkdir -p "$destination_dir/cluster"
       msg-start "$resource" "$name"
 
-      kubectl get -o=json "$resource" "${k_args[@]}" | \
+      # Save resource to file
+      kubectl get --output='json' "$resource" "${k_args[@]}" | \
         jq --exit-status --compact-output --monochrome-output \
           --raw-output --sort-keys 2>/dev/null \
         'del(
@@ -327,38 +413,108 @@ if [[ "$mode" =~ ^(dump|dump-cluster)$ ]]; then
       yq eval --prettyPrint --no-colors --exit-status - \
         >"$destination_dir/cluster/${name//:/-}_$resource".yaml 2>/dev/null && \
       msg-end "$resource" "$name" || msg-fail "$resource" "$name"
+
     done < <(
       kubectl get "$resource" \
-        -o custom-columns=NAME:.metadata.name --no-headers "${k_args[@]}" 2>/dev/null
+        --output='custom-columns=NAME:.metadata.name' \
+        --no-headers "${k_args[@]}" 2>/dev/null
       )
   done
-  success "$context" 'Namespace resources dump completed'
-  score=$((score+1))
+  success 'Cluster' "$context" 'resources dump completed'
 fi
 
-# TODO
 # Git
-if [ "$git_commit" == 'true' ]; then
-  printf '%s\n' "Not realized"
+if [ "$git_commit" == 'true' ] || [ "$git_push" == 'true' ]; then
+
+  cd "$destination_dir"
+  # Init repo if not exist
+  if [ ! -d "$destination_dir/.git/" ]; then
+    git init . --quiet
+    success 'The repository is created in the' "$destination_dir/.git/" \
+      'directory'
+  fi
+  # Set branch
+  if [ -z "$git_branch" ]; then
+    git_branch="$(git symbolic-ref --short HEAD)"
+  else
+    git checkout -b "$git_branch" >/dev/null 2>&1 || true
+  fi
+
+  # Set git username if need
+  if [ -z "$git_commit_user" ] && ! git config user.name >/dev/null 2>&1; then
+    git config --local user.name 'Kube-dump'
+  elif [ -n "$git_commit_user" ]; then
+    git config --local user.name "$git_commit_user"
+  fi
+  # Set git email if need
+  if [ -z "$git_commit_email" ] && ! git config user.email >/dev/null 2>&1; then
+    git config --local user.email "$context"
+  elif [ -n "$git_commit_email" ]; then
+    git config --local user.email "$git_commit_email"
+  fi
+
+  # Ignore archives
+  [ ! -f "$destination_dir/.gitignore" ] && printf '%s\n' \
+    '*.tar.xz' '*.tar.gz' '*.tar.bz2' '*.tar' > "$destination_dir/.gitignore"
+
+  # Commit all
+  if [ -n "$(git status --porcelain)" ]; then
+    _commit_message="Kubernetes $context cluster data dumped at $timestamp"
+    git add .
+    git add . --all
+    git commit --all --quiet --message="$_commit_message"
+    success 'Changes commited with message:' "$_commit_message"
+  else
+    success 'No changes,' 'nothing to commit' 'in git repository'
+  fi
+
+  if [ "$git_push" == 'true' ]; then
+
+    # Set git repository url if need
+    if ! git ls-remote >/dev/null 2>&1 && [ -z "$git_remote_url" ]; then
+      warn "Remote git repository url not set, cannot push"
+    elif [ -n "$git_remote_url" ]; then
+      git remote add "${git_remote_name:-origin}" "$git_remote_url"
+    fi
+    # git pull --ff-only "$git_remote_url" "$git_branch" || true
+    git push --quiet --set-upstream "${git_remote_name:-origin}" "$git_branch"
+  fi
 fi
 
 # Archivate
 if [ "$archivate" == 'true' ]; then
-  archive="${destination_dir%/*}/dump_$timestamp.tar.${archive_type:-xz}"
-  tar cJfP "$archive" -C "${destination_dir%/*}" "${destination_dir/*\//}"
-  success "$archive" "Archive created."
-  if [ -n "$archive_rotate" ]; then
-    find "${destination_dir%/*}" -mindepth 1 -type f -name "*.tar.xz" \
-        -mtime +"$archive_rotate" -delete && \
-    success 'Rotatinon.' \
-    "Older than $archive_rotate days *.tar.${archive_type:-xz} archives removed"
+
+  # Set compression flag and archive name
+  [ "$archive_type" == 'xz' ] && _compress='--xz'
+  [ "$archive_type" == 'gz' ] && _compress='--gzip'
+  [ "$archive_type" == 'bz2' ] && _compress='--bzip2'
+  if [ -n "$_compress" ]; then
+    _archive="${destination_dir}/dump_$timestamp.tar.$archive_type"
+  else
+    _archive="${destination_dir}/dump_$timestamp.tar"
   fi
-  score=$((score+1))
+
+  # Create archive
+  tar --create --file="$_archive" --absolute-names $_compress \
+    --exclude-vcs --exclude='*.tar' --exclude='*.tar.xz' \
+    --exclude='*.tar.gz' --exclude='*.tar.bz2' \
+    --directory="${destination_dir%/*}" "${destination_dir/*\//}"
+  success 'Archive' "$_archive" 'created'
+
+  # Rotate archives
+  if [ -n "$archive_rotate" ]; then
+    find "${destination_dir}" -mindepth 1 -maxdepth 1 -type f -name "*.tar" \
+      -name "*.tar.xz" -name "*.tar.gz" -name "*.tar.bz2" \
+      -mtime +"$archive_rotate" -delete
+    success 'Rotatinon for older than' "$archive_rotate days" \
+      "*.tar.${archive_type:-xz} archives removed"
+  fi
 fi
 
+# Done
 if [ "$score" -ge 0 ]; then
-  success 'Done!' "$score task completed"
+  success 'Done!' "$score" 'task completed'
   exit 0
 else
-  fail 'Not one task runned'
+  fail 'No task has been completed'
 fi
