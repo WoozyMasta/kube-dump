@@ -65,9 +65,9 @@ Optional dependencies:
 ./kube-dump [command] [[flags]]
 
 Available Commands:
-  dump-namespaces               Dump namespaced kubernetes resources
-  dump-cluster                  Dump cluster wide kubernetes resources
-  dump                          Dump all kubernetes resources
+  all, dump                     Dump all kubernetes resources
+  ns,  dump-namespaces          Dump namespaced kubernetes resources
+  cls, dump-cluster             Dump cluster wide kubernetes resources
 
 The command can also be passed through the environment variable MODE.
 All flags presented below have a similar variable in uppercase, with underscores
