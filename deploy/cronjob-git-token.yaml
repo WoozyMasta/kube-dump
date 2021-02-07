@@ -7,7 +7,7 @@ metadata:
   name: kube-dump
   namespace: kube-dump
 spec:
-  schedule: "*/1 * * * *"
+  schedule: "0 1 * * *"
   jobTemplate:
     spec:
       template:
@@ -15,18 +15,25 @@ spec:
           serviceAccountName: kube-dump
           containers:
             - name: kube-dump
-              image: woozymasta/kube-dump:latest
-              imagePullPolicy: Always
+              image: woozymasta/kube-dump:1.0
+              imagePullPolicy: IfNotPresent
               envFrom:
                 - secretRef:
                     name: kube-dump
               env:
                 - name: MODE
-                  value: "dump-namespaces"
+                  value: "ns"
                 - name: NAMESPACES
                   value: "dev,prod"
                 - name: GIT_PUSH
                   value: "true"
                 - name: GIT_BRANCH
                   value: "my-cluster"
+              resources:
+                limits:
+                  cpu: 500m
+                  memory: 200Mi
+                requests:
+                  cpu: 200m
+                  memory: 100Mi
           restartPolicy: OnFailure

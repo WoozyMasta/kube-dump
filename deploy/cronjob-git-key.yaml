@@ -7,7 +7,7 @@ metadata:
   name: kube-dump
   namespace: kube-dump
 spec:
-  schedule: "*/1 * * * *"
+  schedule: "0 1 * * *"
   jobTemplate:
     spec:
       template:
@@ -15,7 +15,7 @@ spec:
           serviceAccountName: kube-dump
           containers:
             - name: kube-dump
-              image: woozymasta/kube-dump:latest
+              image: woozymasta/kube-dump:1.0
               imagePullPolicy: IfNotPresent
               envFrom:
                 - secretRef:
@@ -26,7 +26,36 @@ spec:
                 - name: GIT_PUSH
                   value: "true"
                 - name: GIT_BRANCH
-                  value: "my-cluster"
+                  value: "k8s-cluster"
                 - name: GIT_REMOTE_URL
-                  value: "git@corp-gitlab.com/devops/cluster-bkp.git"
+                  value: "git@gitdp.zyfra.com/maxim.levchenko/main-k8s-backup.git"
+              volumeMounts:
+                - name: key
+                  mountPath: /root/.ssh/id_ed25519
+                  subPath: id_ed25519
+                  readOnly: true
+                - name: key-pub
+                  mountPath: /root/.ssh/id_ed25519.pub
+                  subPath: id_ed25519.pub
+                  readOnly: true
+              resources:
+                limits:
+                  cpu: 500m
+                  memory: 200Mi
+                requests:
+                  cpu: 200m
+                  memory: 100Mi
           restartPolicy: OnFailure
+          volumes:
+            - name: key
+              secret:
+                secretName: kube-dump-key
+                items:
+                  - key: kube-dump
+                    path: id_ed25519
+            - name: key-pub
+              secret:
+                secretName: kube-dump-key
+                items:
+                  - key: kube-dump.pub
+                    path: id_ed25519.pub

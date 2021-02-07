@@ -38,7 +38,7 @@ kubectl exec -ti kube-dump -- /kube-dump -n default
 > 
 > This is an example to demonstrate how it works.  
 > Do not do this in a production environment,
-> the example below uses the cluster admin role `cluster-role-admin.yaml`,
+> the example below uses the cluster view role `cluster-role-view.yaml`,
 > you have enough view permissions to dump the data.
 > 
 > Configure your role correctly according to your needs.
@@ -48,7 +48,7 @@ Apply cluster admin sericeaccount, pvc, pod in kube-dump namespace:
 
 ```shell
 kubectl create ns kube-dump
-kubectl apply -n kube-dump -f deploy/cluster-role-admin.yaml
+kubectl apply -n kube-dump -f deploy/cluster-role-view.yaml
 kubectl apply -n kube-dump -f deploy/pvc.yaml
 kubectl apply -n kube-dump -f deploy/pod-kubeconfig.yaml
 ```
