@@ -8,7 +8,7 @@ metadata:
   namespace: kube-dump
 
 ---
-kind: Role
+kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   labels:
@@ -118,7 +118,7 @@ rules:
       - watch
 
 ---
-kind: RoleBinding
+kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   labels:
@@ -127,7 +127,7 @@ metadata:
   namespace: kube-dump
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: Role
+  kind: ClusterRole
   name: kube-dump
 subjects:
   - kind: ServiceAccount
