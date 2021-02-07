@@ -264,12 +264,13 @@ if [ -n "$kube_cluster" ]; then
 fi
 
 # Try get cluster info
-kubectl cluster-info >/dev/null || fail "Cluster $kube_api not accessible"
+kubectl cluster-info "${k_args[@]}" >/dev/null || \
+  fail "Cluster $kube_api not accessible"
 
 # Set namespaces list
 if [ -z "${namespaces:-$NAMESPACES}" ]; then
   if ! namespaces=$(kubectl get namespaces \
-      --output='jsonpath=\{.items[*].metadata.name\}' "${k_args[@]}")
+      --output=jsonpath=\{.items[*].metadata.name\} "${k_args[@]}")
   then
     fail 'Cant get namespaces from cluster'
   fi
@@ -301,6 +302,7 @@ fi
 
 # Dump dir
 destination_dir="${destination_dir:-${DESTINATION_DIR:-$working_dir/data}}"
+destination_dir="${destination_dir//\/\//\/}"
 if [ "${force_remove:-$FORCE_REMOVE}" == 'true' ]; then
   warn "Destination $destination_dir directory will be removed"
   sleep 3
@@ -334,7 +336,7 @@ if [[ "$mode" =~ ^(dump|dump-namespaces)$ ]]; then
         # Skip service-account-token secrets
         if [ "$resource" == 'secret' ]; then
           type=$(
-            kubectl get --namespace="${ns}" --output='jsonpath="{.type}"' \
+            kubectl get --namespace="${ns}" --output=jsonpath="{.type}" \
               secret "$name" "${k_args[@]}"
             )
           [ "$type" == 'kubernetes.io/service-account-token' ] && continue
