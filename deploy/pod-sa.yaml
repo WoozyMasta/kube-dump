@@ -14,6 +14,9 @@ spec:
       imagePullPolicy: IfNotPresent
       command: ["/bin/bash", "-c", "--"]
       args: ["while true; do sleep 60; done;"]
+      volumeMounts:
+        - name: data
+          mountPath: /data
       resources:
         limits:
           cpu: 500m
@@ -21,9 +24,6 @@ spec:
         requests:
           cpu: 200m
           memory: 100Mi
-      volumeMounts:
-        - name: data
-          mountPath: /data
   restartPolicy: OnFailure
   volumes:
     - name: data

@@ -74,6 +74,12 @@ Show public ssh key and add to repository deployment keys with write access.
 cat ./.ssh/kube-dump.pub
 ```
 
+Create pvc for store data such as cache
+
+```shell
+kubectl apply -n kube-dump -f deploy/pvc.yaml
+```
+
 Create secret with private ssh key
 
 ```shell
@@ -82,7 +88,8 @@ kubectl -n kube-dump create secret generic kube-dump-key \
   --from-file=./.ssh/kube-dump.pub
 ```
 
-And apply the cron job manifest:
+And apply the cron job manifest,
+previously you could set up environment variables
 
 ```shell
 kubectl apply -n kube-dump -f deploy/cronjob-git-key.yaml

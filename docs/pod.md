@@ -52,3 +52,19 @@ kubectl apply -n kube-dump -f deploy/cluster-role-view.yaml
 kubectl apply -n kube-dump -f deploy/pvc.yaml
 kubectl apply -n kube-dump -f deploy/pod-kubeconfig.yaml
 ```
+
+## Deploy with serviceaccount, ssh key and volume
+
+```shell
+mkdir -p ./.ssh
+chmod 0700 ./.ssh
+ssh-keygen -t ed25519 -C "kube-dump" -f ./.ssh/kube-dump
+cat ./.ssh/kube-dump.pub
+kubectl -n kube-dump create secret generic kube-dump-key \
+  --from-file=./.ssh/kube-dump \
+  --from-file=./.ssh/kube-dump.pub
+kubectl create ns kube-dump
+kubectl apply -n kube-dump -f deploy/cluster-role-view.yaml
+kubectl apply -n kube-dump -f deploy/pvc.yaml
+kubectl apply -n kube-dump -f deploy/pod-sa-git-key.yaml
+```

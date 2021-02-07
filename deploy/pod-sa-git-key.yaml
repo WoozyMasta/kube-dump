@@ -1,0 +1,62 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: kube-dump
+  name: kube-dump
+  namespace: kube-dump
+spec:
+  serviceAccountName: kube-dump
+  containers:
+    - name: kube-dump
+      image: woozymasta/kube-dump:1.0
+      imagePullPolicy: IfNotPresent
+      command: ["/bin/bash", "-c", "--"]
+      args: ["while true; do sleep 60; done;"]
+      env:
+        - name: MODE
+          value: "dump"
+        - name: DESTINATION_DIR
+          value: "/data/dump"
+        - name: GIT_PUSH
+          value: "true"
+        - name: GIT_BRANCH
+          value: "master"
+        - name: GIT_REMOTE_URL
+          value: "git@corp-gitlab.com:devops/cluster-bkp.git"
+      volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: key
+          mountPath: /root/.ssh/id_ed25519
+          subPath: id_ed25519
+        - name: key-pub
+          mountPath: /root/.ssh/id_ed25519.pub
+          subPath: id_ed25519.pub
+      resources:
+        limits:
+          cpu: 500m
+          memory: 200Mi
+        requests:
+          cpu: 200m
+          memory: 100Mi
+  restartPolicy: OnFailure
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: kube-dump
+    - name: key
+      secret:
+        secretName: kube-dump-key
+        items:
+          - key: kube-dump
+            path: id_ed25519
+            mode: 0600
+    - name: key-pub
+      secret:
+        secretName: kube-dump-key
+        items:
+          - key: kube-dump.pub
+            path: id_ed25519.pub
+            mode: 0600
