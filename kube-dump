@@ -86,9 +86,9 @@ Usage:
   $cmd [command] [[flags]]
 
 Available Commands:
-  dump-namespaces               Dump namespaced kubernetes resources
-  dump-cluster                  Dump cluster wide kubernetes resources
-  dump                          Dump all kubernetes resources
+  all, dump                     Dump all kubernetes resources
+  ns,  dump-namespaces          Dump namespaced kubernetes resources
+  cls, dump-cluster             Dump cluster wide kubernetes resources
 
 The command can also be passed through the environment variable MODE.
 All flags presented below have a similar variable in uppercase, with underscores
@@ -147,7 +147,7 @@ timestamp="$(date '+%Y.%m.%d_%H-%M')"
 [ -f "$working_dir/.env" ] && . "$working_dir/.env"
 
 # Parse args commands
-if [[ "${1:-$MODE}" =~ ^(dump|dump-namespaces|dump-cluster)$ ]]; then
+if [[ "${1:-$MODE}" =~ ^(dump|all|dump-namespaces|ns|dump-cluster|cls)$ ]]; then
   mode="${1:-$MODE}"; else usage; fi
 
 # Parse args flags
@@ -348,7 +348,7 @@ success 'Dump data in' "$destination_dir" 'directory'
 score=0
 
 # Work with namespaced reosurces
-if [[ "$mode" =~ ^(dump|dump-namespaces)$ ]]; then
+if [[ "$mode" =~ ^(dump|all|dump-namespaces|ns)$ ]]; then
 
   for ns in ${namespaces//,/ }; do
     # Check namespace exist
@@ -422,7 +422,7 @@ if [[ "$mode" =~ ^(dump|dump-namespaces)$ ]]; then
 fi
 
 # Work with cluster reosurces
-if [[ "$mode" =~ ^(dump|dump-cluster)$ ]]; then
+if [[ "$mode" =~ ^(dump|all|dump-cluster|cls)$ ]]; then
 
   heading 'Dump cluster data' "$context"
   # Iterate over resources
