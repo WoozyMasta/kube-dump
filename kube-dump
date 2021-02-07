@@ -128,7 +128,7 @@ timestamp="$(date '+%Y.%m.%d_%H-%M')"
 
 # Parse args commands
 if [[ "${1:-$MODE}" =~ ^(dump|dump-namespaces|dump-cluster)$ ]]; then
-  mode=$1; else usage; fi
+  mode="${1:-$MODE}"; else usage; fi
 
 # Parse args flags
 args=$(
