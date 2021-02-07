@@ -1,0 +1,25 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: kube-dump
+  name: kube-dump
+  namespace: kube-dump
+spec:
+  serviceAccountName: kube-dump
+  containers:
+    - name: kube-dump
+      image: woozymasta/kube-dump:latest
+      imagePullPolicy: IfNotPresent
+      command: ["/bin/bash", "-c", "--"]
+      args: ["while true; do sleep 60; done;"]
+      resources: {}
+      volumeMounts:
+        - name: data
+          mountPath: /data
+  restartPolicy: OnFailure
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: kube-dump
