@@ -122,6 +122,10 @@ working_dir="$(pwd)"
 cmd="$(basename "$real_path")"
 timestamp="$(date '+%Y.%m.%d_%H-%M')"
 
+# Read vars from env
+# shellcheck disable=SC1090,SC1091
+[ -f "$working_dir/.env" ] && . "$working_dir/.env"
+
 # Parse args commands
 if [[ "${1:-$MODE}" =~ ^(dump|dump-namespaces|dump-cluster)$ ]]; then
   mode=$1; else usage; fi
@@ -177,9 +181,7 @@ if [ -n "$*" ]; then
   fail "extra arguments $*"
 fi
 
-# Read vars from env
-# shellcheck disable=SC1090,SC1091
-[ -f "$working_dir/.env" ] && . "$working_dir/.env"
+# Set vars
 silent="${silent:-$SILENT}"
 kube_config="${kube_config:-$KUBE_CONFIG}"
 kube_context="${kube_context:-$KUBE_CONTEXT}"
