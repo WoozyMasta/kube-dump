@@ -65,9 +65,14 @@ Optional dependencies:
 ./kube-dump [command] [[flags]]
 
 Available Commands:
-  dump-namespaces    Dump namespaced kubernetes resources
-  dump-cluster       Dump cluster wide kubernetes resources
-  dump               Dump all kubernetes resources
+  dump-namespaces               Dump namespaced kubernetes resources
+  dump-cluster                  Dump cluster wide kubernetes resources
+  dump                          Dump all kubernetes resources
+
+The command can also be passed through the environment variable MODE.
+All flags presented below have a similar variable in uppercase, with underscores
+For example:
+  --destination-dir == DESTINATION_DIR 
 
 Flags:
   -h, --help                    This help
@@ -97,6 +102,9 @@ Archivate flags:
   -a, --archivate               Create archive of data dir
       --archive-rotate-days     Rotate archives older than N days
       --archive-type            Archive type xz, gz or bz2, default is tar
+
+Example of use:
+  $cmd dump-namespaces -n default,dev -d /mnt/dump -spa --archive-type gz
 ```
 
 ## Environment variables

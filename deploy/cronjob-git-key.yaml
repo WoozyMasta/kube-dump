@@ -17,22 +17,16 @@ spec:
             - name: kube-dump
               image: woozymasta/kube-dump:latest
               imagePullPolicy: IfNotPresent
+              envFrom:
+                - secretRef:
+                    name: kube-dump
               env:
                 - name: MODE
                   value: "dump"
-                - name: FORCE_REMOVE
+                - name: GIT_PUSH
                   value: "true"
-                - name: ARCHIVATE
-                  value: "true"
-                - name: ARCHIVE_ROTATE
-                  value: "60"
-                - name: ARCHIVE_TYPE
-                  value: "xz"
-              volumeMounts:
-                - name: data
-                  mountPath: /data
+                - name: GIT_BRANCH
+                  value: "my-cluster"
+                - name: GIT_REMOTE_URL
+                  value: "git@corp-gitlab.com/devops/cluster-bkp.git"
           restartPolicy: OnFailure
-          volumes:
-            - name: data
-              persistentVolumeClaim:
-                claimName: kube-dump
