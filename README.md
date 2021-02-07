@@ -1,15 +1,46 @@
-# Kube-dump
+# Kube-dump <!-- omit in toc --> 
 
-Backup a Kubernetes cluster as yaml manifests
+Backup a Kubernetes cluster as a yaml manifest.
 
 ![Logo](https://raw.githubusercontent.com/WoozyMasta/kube-dump/master/extras/logo-wide.png)
 
+* [Description](#description)
+* [Quick Start Guides](#quick-start-guides)
+* [Dependencies](#dependencies)
+* [Commands and flags](#commands-and-flags)
+* [Environment variables](#environment-variables)
+
+## Description
+
+With this utility you can save your cluster resources as nice yaml manifests without unnecessary metadata.
+
+Key features:
+
+* Saving only those resources to which you have read access;
+* Can work with a list of namespaces otherwise all available ones will be used;
+* Can save both namespaced and cluster wide resources;
+* You can run locally, in a container or in a cluster;
+* Can archive and rotate dump archives;
+* Can commit dumps to a git repository and send to a remote repository;
+* You can specify a list of resources to be dumped;
+* It is possible to configure via command line arguments as well as via environment variables.
+
+Plans to implement:
+
+* Sending dumps to s3 bucket;
+* Sending notifications by email and webhook;
+* Git-crypt to encrypt secrets
+* Bash autocomplete 
+
+---
+
+[![asciicast](https://asciinema.org/a/DEOjycqfHNa8Rrietk3mbaPvp.svg)](https://asciinema.org/a/DEOjycqfHNa8Rrietk3mbaPvp)
+
+## Quick Start Guides 
 * [Run on a local machine](./docs/local.md) (dependencies and a config for kubectl are required)
 * [Run in container](./docs/container.md) (docker, podman, etc. required and a config for kubectl)
 * [Run in kubernetes as pod](./docs/pod.md) (requires access to the kubernetes cluster and config for kubectl)
 * [Run in kubernetes as a cron job using a service account](./docs/conjob.md) (requires access to the kubernetes cluster and the ability to create a role or cluster role) 
-
-[![asciicast](https://asciinema.org/a/DEOjycqfHNa8Rrietk3mbaPvp.svg)](https://asciinema.org/a/DEOjycqfHNa8Rrietk3mbaPvp)
 
 ## Dependencies
 
@@ -67,3 +98,7 @@ Archivate flags:
       --archive-rotate-days     Rotate archives older than N days
       --archive-type            Archive type xz, gz or bz2, default is tar
 ```
+
+## Environment variables
+
+All environment variables are described in the [.env](./.env) file, you can use them both for the container launch configuration and directly from the [`.env`](./.env) file, it is read automatically at startup.
