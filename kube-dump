@@ -66,9 +66,14 @@ Usage:
   $cmd [command] [[flags]]
 
 Available Commands:
-  dump-namespaces    Dump namespaced kubernetes resources
-  dump-cluster       Dump cluster wide kubernetes resources
-  dump               Dump all kubernetes resources
+  dump-namespaces               Dump namespaced kubernetes resources
+  dump-cluster                  Dump cluster wide kubernetes resources
+  dump                          Dump all kubernetes resources
+
+The command can also be passed through the environment variable MODE.
+All flags presented below have a similar variable in uppercase, with underscores
+For example:
+  --destination-dir == DESTINATION_DIR 
 
 Flags:
   -h, --help                    This help
@@ -99,7 +104,7 @@ Archivate flags:
       --archive-rotate-days     Rotate archives older than N days
       --archive-type            Archive type xz, gz or bz2, default is tar
 
-Example:
+Example of use:
   $cmd dump-namespaces -n default,dev -d /mnt/dump -spa --archive-type gz
 
 Report bugs at:
@@ -118,7 +123,7 @@ cmd="$(basename "$real_path")"
 timestamp="$(date '+%Y.%m.%d_%H-%M')"
 
 # Parse args commands
-if [[ "$1" =~ ^(dump|dump-namespaces|dump-cluster)$ ]]; then
+if [[ "${1:-$MODE}" =~ ^(dump|dump-namespaces|dump-cluster)$ ]]; then
   mode=$1; else usage; fi
 
 # Parse args flags

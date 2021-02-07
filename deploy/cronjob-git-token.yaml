@@ -16,12 +16,17 @@ spec:
           containers:
             - name: kube-dump
               image: woozymasta/kube-dump:latest
-              imagePullPolicy: IfNotPresent
+              imagePullPolicy: Always
+              envFrom:
+                - secretRef:
+                    name: kube-dump
               env:
+                - name: MODE
+                  value: "dump-namespaces"
+                - name: NAMESPACES
+                  value: "dev,prod"
                 - name: GIT_PUSH
                   value: "true"
                 - name: GIT_BRANCH
                   value: "my-cluster"
-                - name: GIT_REMOTE_URL
-                  value: "git@github.com:my-cluster.git"
           restartPolicy: OnFailure
