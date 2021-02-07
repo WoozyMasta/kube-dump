@@ -21,49 +21,44 @@
 set -e
 
 # Messages
-check-tty () {
-  case $- in
-    *i*) return 0;;
-      *) return 1;;
-  esac
-}
+[ -t 0 ] && _tty=1 || _tty=0
 log () {
   printf '%s [%s] %s\n' "$(date '+%Y/%m/%d %H:%M:%S')" "$1" "${@:2}"
 }
 msg-start () {
-  [ "$silent" == 'true' ] && return; if check-tty; then
-    check-tty && printf '\e[1;33m%-15s\e[m%-30s%s\n' 'Processing' "$1" "${@:2}"
+  [ "$silent" == 'true' ] && return; if [ "$_tty" -eq 1 ]; then
+    printf '\e[1;33m%-15s\e[m%-30s%s\n' 'Processing' "$1" "${@:2}"
   else log INFO "Processing dump $*"; fi
 }
 msg-end () {
-  [ "$silent" == 'true' ] && return; if check-tty; then
+  [ "$silent" == 'true' ] && return; if [ "$_tty" -eq 1 ]; then
     printf '\e[1A\e[1;32m%-15s\e[m%-30s%s\n' 'Success' "$1" "${@:2}"
   else log INFO "Successfully dumped $*"; fi
 }
 msg-fail () {
-  [ "$silent" == 'true' ] && return; if check-tty; then
+  [ "$silent" == 'true' ] && return; if [ "$_tty" -eq 1 ]; then
     printf '\e[1A\e[1;31m%-15s\e[m%-30s%s\n' 'Fail' "$1" "${@:2}"
   else log WARNING "Failed dump $*"; fi
 }
 success () {
-  [ "$silent" == 'true' ] && return; if check-tty; then
+  [ "$silent" == 'true' ] && return; if [ "$_tty" -eq 1 ]; then
     printf '%s \e[1;36m%s\e[m %s\n\n' "$1" "$2" "${@:3}"
   else log INFO "$*"; fi
   score=$((score+1))
 }
 heading () {
-  [ "$silent" == 'true' ] && return; if check-tty; then
+  [ "$silent" == 'true' ] && return; if [ "$_tty" -eq 1 ]; then
   printf '%s \e[1;34m%s\e[m %s\n%-15s%-30s%s\n' \
          "$1" "$2" 'started' 'STATE' 'RESOURCE' 'NAME'
   else log INFO "$*"; fi
 }
 warn () {
-  if check-tty; then
+  if [ "$_tty" -eq 1 ]; then
     >&2 printf '\e[1;31m%-10s\e[m%s\n' 'Warning:' "$*"
   else log WARNING "$*"; fi
 }
 fail () {
-  if check-tty; then
+  if [ "$_tty" -eq 1 ]; then
     >&2 printf '\n\e[1;31m%-10s\e[m%s\n' 'Error:' "$*"; exit 1
   else log ERROR "$*"; exit 1; fi
 }
