@@ -21,38 +21,58 @@
 set -e
 
 # Messages
+check-tty () {
+  case $- in
+    *i*) return 0;;
+      *) return 1;;
+  esac
+}
+log () {
+  printf '%s [%s] %s\n' "$(date '+%Y/%m/%d %H:%M:%S')" "$1" "${@:2}"
+}
 msg-start () {
-  [ "$silent" == 'true' ] && return
-  printf '\e[1;33m%-15s\e[m%-30s%s\n' 'Processing' "$1" "${@:2}"
+  [ "$silent" == 'true' ] && return; if check-tty; then
+    check-tty && printf '\e[1;33m%-15s\e[m%-30s%s\n' 'Processing' "$1" "${@:2}"
+  else log INFO "$*"; fi
 }
 msg-end () {
-  [ "$silent" == 'true' ] && return
-  printf '\e[1A\e[1;32m%-15s\e[m%-30s%s\n' 'Success' "$1" "${@:2}"
+  [ "$silent" == 'true' ] && return; if check-tty; then
+    printf '\e[1A\e[1;32m%-15s\e[m%-30s%s\n' 'Success' "$1" "${@:2}"
+  else log INFO "$*"; fi
 }
 msg-fail () {
-  [ "$silent" == 'true' ] && return
-  printf '\e[1A\e[1;31m%-15s\e[m%-30s%s\n' 'Fail' "$1" "${@:2}"
+  [ "$silent" == 'true' ] && return; if check-tty; then
+    printf '\e[1A\e[1;31m%-15s\e[m%-30s%s\n' 'Fail' "$1" "${@:2}"
+  else log WARNING "$*"; fi
 }
 success () {
-  [ "$silent" == 'true' ] && return
-  printf '%s \e[1;36m%s\e[m %s\n\n' "$1" "$2" "${@:3}"
+  [ "$silent" == 'true' ] && return; if check-tty; then
+    printf '%s \e[1;36m%s\e[m %s\n\n' "$1" "$2" "${@:3}"
+  else log INFO "$*"; fi
   score=$((score+1))
 }
 heading () {
-  [ "$silent" == 'true' ] && return
+  [ "$silent" == 'true' ] && return; if check-tty; then
   printf '%s \e[1;34m%s\e[m %s\n%-15s%-30s%s\n' \
          "$1" "$2" 'started' 'STATE' 'RESOURCE' 'NAME'
+  else log INFO "$*"; fi
 }
-warn () { >&2 printf '\e[1;31m%-10s\e[m%s\n' 'Warning:' "$*"; }
-fail () { >&2 printf '\n\e[1;31m%-10s\e[m%s\n' 'Error:' "$*"; exit 1; }
+warn () {
+  if check-tty; then
+    >&2 printf '\e[1;31m%-10s\e[m%s\n' 'Warning:' "$*"
+  else log WARNING "$*"; fi
+}
+fail () {
+  if check-tty; then
+    >&2 printf '\n\e[1;31m%-10s\e[m%s\n' 'Error:' "$*"; exit 1
+  else log ERROR "$*"; exit 1; fi
+}
 
 # Check command is exist
 require () {
   for command in "$@"; do
     if ! [ -x "$(command -v "$command")" ]; then
-      >&2 printf '\n\e[1;31m%-10s\e[m%s\n' \
-      'Error:' "'$command' util not found, please install it first"
-      exit 1
+      fail "'$command' util not found, please install it first"
     fi
   done
 }
@@ -490,7 +510,8 @@ if [ "$git_commit" == 'true' ] || [ "$git_push" == 'true' ]; then
     if ! git ls-remote >/dev/null 2>&1 && [ -z "$git_remote_url" ]; then
       warn "Remote git repository url not set, cannot push"
     elif [ -n "$git_remote_url" ]; then
-      git remote add "${git_remote_name:-origin}" "$git_remote_url"
+      git remote add "${git_remote_name:-origin}" \
+        "$git_remote_url" > /dev/null 2>&1 || true
     fi
     git pull --ff-only "$git_remote_url" "$git_branch" || true
     git push --quiet --set-upstream "${git_remote_name:-origin}" "$git_branch"
