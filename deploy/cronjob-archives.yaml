@@ -1,0 +1,36 @@
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  labels:
+    app: kube-dump
+  name: kube-dump
+  namespace: kube-dump
+spec:
+  schedule: "*/1 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: kube-dump
+          containers:
+            - name: kube-dump
+              image: woozymasta/kube-dump:latest
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: FORCE_REMOVE
+                  value: "true"
+                - name: ARCHIVATE
+                  value: "true"
+                - name: ARCHIVE_ROTATE
+                  value: "60"
+                - name: ARCHIVE_TYPE
+                  value: "xz"
+              volumeMounts:
+                - name: data
+                  mountPath: /data
+          restartPolicy: OnFailure
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: kube-dump

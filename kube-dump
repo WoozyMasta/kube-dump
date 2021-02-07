@@ -478,7 +478,7 @@ if [ "$git_commit" == 'true' ] || [ "$git_push" == 'true' ]; then
     elif [ -n "$git_remote_url" ]; then
       git remote add "${git_remote_name:-origin}" "$git_remote_url"
     fi
-    # git pull --ff-only "$git_remote_url" "$git_branch" || true
+    git pull --ff-only "$git_remote_url" "$git_branch" || true
     git push --quiet --set-upstream "${git_remote_name:-origin}" "$git_branch"
   fi
 fi

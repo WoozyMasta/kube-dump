@@ -1,0 +1,27 @@
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  labels:
+    app: kube-dump
+  name: kube-dump
+  namespace: kube-dump
+spec:
+  schedule: "*/1 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: kube-dump
+          containers:
+            - name: kube-dump
+              image: woozymasta/kube-dump:latest
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: GIT_PUSH
+                  value: "true"
+                - name: GIT_BRANCH
+                  value: "my-cluster"
+                - name: GIT_REMOTE_URL
+                  value: "git@github.com:my-cluster.git"
+          restartPolicy: OnFailure
