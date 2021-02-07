@@ -16,11 +16,17 @@ Exemple for Ubuntu
 ```shell
 sudo apt install bash git tar xz-utils gzip bzip2 curl
 # kubectl
-curl -sLo ~/.local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.20.2/bin/linux/amd64/kubectl
+curl -sLo ~/.local/bin/kubectl \
+  https://storage.googleapis.com/kubernetes-release/release/v1.20.2/bin/linux/amd64/kubectl
+chmod +x ~/.local/bin/kubectl
 # jq
-curl -sLo ~/.local/bin/jq https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64
+curl -sLo ~/.local/bin/jq \
+  https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64
+chmod +x ~/.local/bin/jq
 # yq
-curl -sLo ~/.local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.5.0/yq_linux_amd64
+curl -sLo ~/.local/bin/yq \
+  https://github.com/mikefarah/yq/releases/download/v4.5.0/yq_linux_amd64
+chmod +x ~/.local/bin/yq
 
 ```
 
