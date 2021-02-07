@@ -14,6 +14,3 @@ jobs:
 
       - name: ShellCheck
         uses: ludeeus/action-shellcheck@1.0.0
-
-      - name: DockerLinter
-        uses: uditgaurav/docker-linter@v1
