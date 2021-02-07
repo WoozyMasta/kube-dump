@@ -336,9 +336,24 @@ mkdir -p "$destination_dir"
 
 # Git try to clone
 if [ "$git_push" == 'true' ] && [ ! -d "$destination_dir/.git/" ]; then
-  git clone --branch "$git_branch" --single-branch --depth 5 \
-    --quiet "$git_remote_url" "$destination_dir" && \
-    success 'Remote repository cloned to' "$destination_dir"
+
+  if ! grep --quiet --extended-regexp 'https?:\/\/' <<< "$git_remote_url"; then
+
+    _remote_url=$(sed -r 's|.*@([A-Za-z0-0\-\.]+):.*|\1|' <<< "$git_remote_url")
+    ! grep --quiet "^gitdp.zyfra.com " ~/.ssh/known_hosts >/dev/null 2>&1 && \
+      ssh-keyscan gitdp.zyfra.com >> ~/.ssh/known_hosts 2>/dev/null
+
+    git clone --branch "$git_branch" --single-branch --depth 5 \
+      --quiet "$_remote_url" "$destination_dir" >/dev/null 2>&1 && \
+      success 'The remote repository is cloned at' "$destination_dir" || \
+      warn 'Unable to clone remote repository at' "$destination_dir"
+
+  else
+    git clone --branch "$git_branch" --single-branch --depth 5 \
+      --quiet "$git_remote_url" "$destination_dir" >/dev/null 2>&1 && \
+      success 'The remote repository is cloned at' "$destination_dir" || \
+      warn 'Unable to clone remote repository at' "$destination_dir"
+  fi
 fi
 
 success 'Dump data in' "$destination_dir" 'directory'
