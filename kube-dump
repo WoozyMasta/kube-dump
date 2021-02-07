@@ -315,6 +315,13 @@ if [ "${force_remove:-$FORCE_REMOVE}" == 'true' ]; then
 fi
 mkdir -p "$destination_dir"
 
+# Git try to clone
+if [ "$git_push" == 'true' ] && [ ! -d "$destination_dir/.git/" ]; then
+  git clone --branch "$git_branch" --single-branch --depth 5 --progress \
+    --quiet "$git_remote_url" "$destination_dir" && \
+    success 'Remote repository cloned to' "$destination_dir"
+fi
+
 success 'Dump data in' "$destination_dir" 'directory'
 score=0
 
