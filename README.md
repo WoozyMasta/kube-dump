@@ -4,6 +4,14 @@ Backup a Kubernetes cluster as a yaml manifest.
 
 ![Logo](https://raw.githubusercontent.com/WoozyMasta/kube-dump/master/extras/logo-wide.png)
 
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/WoozyMasta/kube-dump?style=flat-square)
+![GitHub branch checks state](https://img.shields.io/github/checks-status/WoozyMasta/kube-dump/master?style=flat-square)
+![GitHub](https://img.shields.io/github/license/WoozyMasta/kube-dump?style=flat-square)
+![GitHub last commit](https://img.shields.io/github/last-commit/WoozyMasta/kube-dump?style=flat-square)
+![Docker Pulls](https://img.shields.io/docker/pulls/woozymasta/kube-dump?style=flat-square)
+![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/woozymasta/kube-dump?style=flat-square)
+![Docker Image Size (latest semver)](https://img.shields.io/docker/image-size/woozymasta/kube-dump?sort=semver&style=flat-square)
+
 * [Description](#description)
 * [Quick Start Guides](#quick-start-guides)
 * [Dependencies](#dependencies)
@@ -32,13 +40,13 @@ Key features:
 Plans to implement:
 
 * Sending dumps to s3 bucket;
-* Sending notifications by email and webhook;
+* Sending notifications by email and webhook;****
 * Git-crypt to encrypt secrets
 * Bash autocomplete 
 
 ---
 
-[![asciicast](https://asciinema.org/a/DEOjycqfHNa8Rrietk3mbaPvp.svg)](https://asciinema.org/a/DEOjycqfHNa8Rrietk3mbaPvp)
+[![asciicast](https://raw.githubusercontent.com/WoozyMasta/kube-dump/master/extras/kube-dump.gif)](https://asciinema.org/a/3FfZlP011rF0gj443QnuWdNFE)
 
 ## Quick Start Guides 
 * [Run on a local machine](./docs/local.md) (dependencies and a config for kubectl are required)
