@@ -306,21 +306,20 @@ fi
 # Set namespaced resources
 # https://kubernetes.io/docs/reference/kubectl/overview/#resource-types
 if [ -z "${namespaced_resources:-$NAMESPACED_RESOURCES}" ]; then
-  namespaced_resources='configmaps, secrets, deployments, daemonsets,
-    statefulsets, replicationcontrollers, ingresses, services, cronjobs, jobs,
-    poddisruptionbudgets, horizontalpodautoscalers, persistentvolumeclaims,
-    limitranges, resourcequotas, networkpolicies, serviceaccounts, roles,
-    rolebindings'
+  namespaced_resources="$(
+    kubectl api-resources --namespaced=true --output=name "${k_args[@]}" | \
+    tr '\n' ' '
+  )"
 else
   namespaced_resources=${namespaced_resources:-$NAMESPACED_RESOURCES}
 fi
 
 # Set cluster resources
 if [ -z "${cluster_resources:-$CLUSTER_RESOURCES}" ]; then
-  cluster_resources='customresourcedefinitions, validatingwebhookconfigurations,
-    mutatingwebhookconfigurations, podsecuritypolicies, clusterrolebindings,
-    clusterroles, priorityclasses, csidrivers, storageclasses, runtimeclasses,
-    namespaces'
+  cluster_resources="$(
+    kubectl api-resources --namespaced=false --output=name "${k_args[@]}" | \
+    tr '\n' ' '
+  )"
 else
   cluster_resources=${cluster_resources:-$CLUSTER_RESOURCES}
 fi
@@ -340,9 +339,9 @@ if [ "$git_push" == 'true' ] && [ ! -d "$destination_dir/.git/" ]; then
 
   if ! grep --quiet --extended-regexp 'https?:\/\/' <<< "$git_remote_url"; then
 
-    _remote_url=$(sed -r 's|.*@([A-Za-z0-0\-\.]+):.*|\1|' <<< "$git_remote_url")
-    ! grep --quiet "^gitdp.zyfra.com " ~/.ssh/known_hosts >/dev/null 2>&1 && \
-      ssh-keyscan gitdp.zyfra.com >> ~/.ssh/known_hosts 2>/dev/null
+    _remote_url=$(sed -r 's|.*@([A-Za-z0-9\-\.]+):.*|\1|' <<< "$git_remote_url")
+    ! grep --quiet "^$_remote_url " ~/.ssh/known_hosts >/dev/null 2>&1 && \
+      ssh-keyscan "$_remote_url" >> ~/.ssh/known_hosts 2>/dev/null
 
     git clone --branch "$git_branch" --single-branch --depth 5 \
       --quiet "$_remote_url" "$destination_dir" >/dev/null 2>&1 && \

@@ -17,10 +17,7 @@ Backup a Kubernetes cluster as a yaml manifest.
 * [Dependencies](#dependencies)
 * [Commands and flags](#commands-and-flags)
 * [Environment variables](#environment-variables)
-* [Default cluster resources](#default-cluster-resources)
-  * [Namespaces](#namespaces)
-  * [Namespaced cluster resources](#namespaced-cluster-resources)
-  * [Cluster wide resources](#cluster-wide-resources)
+* [Resources default's](#resources-defaults)
 
 ## Description
 
@@ -123,47 +120,10 @@ Example of use:
 
 All environment variables are described in the [.env](./.env) file, you can use them both for the container launch configuration and directly from the [`.env`](./.env) file, it is read automatically at startup.
 
-## Default cluster resources
+## Resources default's
 
-### Namespaces
+All resources automatically discovered from the API if not pass as argument.
 
-Namespaces are automatically discovered from the API.
-### Namespaced cluster resources
-
-List of default namespaced resources:
-
-* configmaps
-* secrets
-* deployments
-* daemonsets
-* statefulsets
-* replicationcontrollers
-* ingresses
-* services
-* cronjobs
-* jobs
-* poddisruptionbudgets
-* horizontalpodautoscalers
-* persistentvolumeclaims
-* limitranges
-* resourcequotas
-* networkpolicies
-* serviceaccounts
-* roles
-* rolebindings
-
-### Cluster wide resources
-
-List of default cluster wide resources:
-
-* customresourcedefinitions
-* validatingwebhookconfigurations
-* mutatingwebhookconfigurations
-* podsecuritypolicies
-* clusterrolebindings
-* clusterroles
-* priorityclasses
-* csidrivers
-* storageclasses
-* runtimeclasses
-* namespaces
+* List of namespaces
+* List of default namespaced resources
+* List of default cluster wide resources
