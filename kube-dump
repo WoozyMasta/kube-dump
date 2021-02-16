@@ -343,13 +343,13 @@ if [ "$git_push" == 'true' ] && [ ! -d "$destination_dir/.git/" ]; then
     ! grep --quiet "^$_remote_url " ~/.ssh/known_hosts >/dev/null 2>&1 && \
       ssh-keyscan "$_remote_url" >> ~/.ssh/known_hosts 2>/dev/null
 
-    git clone --branch "$git_branch" --single-branch --depth 5 \
+    git clone --branch "$git_branch" --single-branch --depth 1 \
       --quiet "$_remote_url" "$destination_dir" >/dev/null 2>&1 && \
       success 'The remote repository is cloned at' "$destination_dir" || \
       warn 'Unable to clone remote repository at' "$destination_dir"
 
   else
-    git clone --branch "$git_branch" --single-branch --depth 5 \
+    git clone --branch "$git_branch" --single-branch --depth 1 \
       --quiet "$git_remote_url" "$destination_dir" >/dev/null 2>&1 && \
       success 'The remote repository is cloned at' "$destination_dir" || \
       warn 'Unable to clone remote repository at' "$destination_dir"
