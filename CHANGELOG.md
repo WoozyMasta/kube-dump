@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.0.1] - 2021-02-17
+
+### Changed
+
+* Fixed issue with trusting keys when first ssh cloning a git repository
+in a container
 ## [1.0.0] - 2021-02-07
 
 ### Added
