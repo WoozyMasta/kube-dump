@@ -87,7 +87,7 @@ Flags:
   -h, --help                    This help
   -s, --silent                  Execute silently, suppress all stdout messages
   -d, --destination-dir         Path to dir for store dumps, default ./data
-  -f, --force-remove            Delete resources data directory before launch
+  -f, --force-remove            Delete resources in data directory before launch
 
 Kubernetes flags:
   -n, --namespaces              List of kubernetes namespaces
