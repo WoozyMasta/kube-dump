@@ -43,7 +43,7 @@ msg-fail () {
 }
 success () {
   [ "$silent" == 'true' ] && return; if [ "$_tty" -eq 1 ]; then
-    printf '%s \e[1;36m%s\e[m %s\n\n' "$1" "$2" "${@:3}"
+    printf '%s \e[1;36m%s\e[m %s\n' "$1" "$2" "${@:3}"
   else log INFO "$*"; fi
   score=$((score+1))
 }
@@ -89,7 +89,7 @@ Available Commands:
 The command can also be passed through the environment variable MODE.
 All flags presented below have a similar variable in uppercase, with underscores
 For example:
-  --destination-dir == DESTINATION_DIR 
+  --destination-dir == DESTINATION_DIR
 
 Flags:
   -h, --help                    This help
@@ -326,13 +326,16 @@ fi
 
 # Dump dir
 destination_dir="${destination_dir:-${DESTINATION_DIR:-$working_dir/data}}"
-destination_dir="${destination_dir//\/\//\/}"
+destination_dir="$(realpath "$destination_dir" --canonicalize-missing)"
 if [ "${force_remove:-$FORCE_REMOVE}" == 'true' ]; then
   warn "Destination $destination_dir directory will be removed"
   sleep 3
   find "$destination_dir" -mindepth 1 ! -name '.git' -type d -delete
 fi
-mkdir -p "$destination_dir"
+if [ ! -d "$destination_dir" ]; then
+  mkdir -p "$destination_dir"
+  success 'Dump data directory' "$destination_dir" 'created'
+fi
 
 # Git try to clone
 if [ "$git_push" == 'true' ] && [ ! -d "$destination_dir/.git/" ]; then
@@ -356,7 +359,7 @@ if [ "$git_push" == 'true' ] && [ ! -d "$destination_dir/.git/" ]; then
   fi
 fi
 
-success 'Dump data in' "$destination_dir" 'directory'
+success 'Dump data in' "$destination_dir" 'directory' ''
 score=0
 
 # Work with namespaced reosurces
@@ -429,7 +432,7 @@ if [[ "$mode" =~ ^(dump|all|dump-namespaces|ns)$ ]]; then
           --no-headers "${k_args[@]}" 2>/dev/null
         )
     done
-    success 'Namespace' "$ns" 'resources dump completed'
+    success 'Namespace' "$ns" 'resources dump completed' ''
   done
 fi
 
@@ -468,7 +471,7 @@ if [[ "$mode" =~ ^(dump|all|dump-cluster|cls)$ ]]; then
         --no-headers "${k_args[@]}" 2>/dev/null
       )
   done
-  success 'Cluster' "$context" 'resources dump completed'
+  success 'Cluster' "$context" 'resources dump completed' ''
 fi
 
 # Git
@@ -547,7 +550,7 @@ if [ "$archivate" == 'true' ]; then
   tar --create --file="$_archive" --absolute-names $_compress \
     --exclude-vcs --exclude='*.tar' --exclude='*.tar.xz' \
     --exclude='*.tar.gz' --exclude='*.tar.bz2' \
-    --directory="${destination_dir%/*}" "${destination_dir/*\//}"
+    --directory="$(realpath "${destination_dir%/*}")" "${destination_dir##*/}"
   success 'Archive' "$_archive" 'created'
 
   # Rotate archives
