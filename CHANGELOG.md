@@ -4,14 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [v1.0.2](/releases/tag/v1.0.2) - 2021-02-17
+## [v1.0.2](../../releases/tag/v1.0.2) - 2021-02-17
 ### Changed
 
-* Fixed issue with relative paths [#6](/issues/6)
-* Fixed force remove resorces dirs in data dir [#7](/issues/7)
+* Fixed issue with relative paths [#6](../../issues/6)
+* Fixed force remove resorces dirs in data dir [#7](../../issues/7)
 * Fixed tty detection for output redirects, show plain log messages if not use
 interactive seesion or redirect output to file
-## [v1.0.1](/releases/tag/v1.0.1) - 2021-02-17
+## [v1.0.1](../../releases/tag/v1.0.1) - 2021-02-17
 
 ### Changed
 
