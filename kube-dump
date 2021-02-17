@@ -550,7 +550,7 @@ if [ "$archivate" == 'true' ]; then
   tar --create --file="$_archive" --absolute-names $_compress \
     --exclude-vcs --exclude='*.tar' --exclude='*.tar.xz' \
     --exclude='*.tar.gz' --exclude='*.tar.bz2' \
-    --directory="$(realpath "${destination_dir%/*}")" "${destination_dir##*/}"
+    --directory="${destination_dir%/*}" "${destination_dir##*/}"
   success 'Archive' "$_archive" 'created'
 
   # Rotate archives
