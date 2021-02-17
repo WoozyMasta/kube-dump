@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 * Fixed issue with relative paths #6
+* Fixed force remove resorces dirs in data dir #7
 ## [1.0.1] - 2021-02-17
 
 ### Changed
