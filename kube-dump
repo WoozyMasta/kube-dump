@@ -95,7 +95,7 @@ Flags:
   -h, --help                    This help
   -s, --silent                  Execute silently, suppress all stdout messages
   -d, --destination-dir         Path to dir for store dumps, default ./data
-  -f, --force-remove            Delete resources data directory before launch
+  -f, --force-remove            Delete resources in data directory before launch
 
 Kubernetes flags:
   -n, --namespaces              List of kubernetes namespaces
@@ -330,7 +330,8 @@ destination_dir="$(realpath "$destination_dir" --canonicalize-missing)"
 if [ "${force_remove:-$FORCE_REMOVE}" == 'true' ]; then
   warn "Destination $destination_dir directory will be removed"
   sleep 3
-  find "$destination_dir" -mindepth 1 ! -name '.git' -type d -delete
+  find "$destination_dir" -mindepth 1 -maxdepth 1 -type d ! -name '.git' \
+    -exec rm -fr "{}" \;
 fi
 if [ ! -d "$destination_dir" ]; then
   mkdir -p "$destination_dir"
