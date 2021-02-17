@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+* Fixed issue with relative paths #6
 ## [1.0.1] - 2021-02-17
 
 ### Changed
