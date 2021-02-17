@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file.
 
 * Fixed issue with relative paths #6
 * Fixed force remove resorces dirs in data dir #7
+* Fixed tty detection for output redirects, show plain log messages if not use
+interactive seesion or redirect output to file
 ## [1.0.1] - 2021-02-17
 
 ### Changed
