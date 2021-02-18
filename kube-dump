@@ -131,7 +131,10 @@ EOF
 }
 
 # Set common vars
-real_path="$(readlink -f "$0")"
+realpath() {
+  [[ $1 = /* ]] && echo "$1" || echo "$PWD/${1#./}"
+}
+real_path="$(realpath "$0")"
 # working_dir="$(dirname "$real_path")"
 working_dir="$(pwd)"
 cmd="$(basename "$real_path")"
