@@ -5,10 +5,13 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ## [v1.0.3](../../releases/tag/v1.0.3) - 2021-02-17
+
 ### Changed
 
 * Ditching the test alpine:edge container and moving to version 3.13
+
 ## [v1.0.2](../../releases/tag/v1.0.2) - 2021-02-17
+
 ### Changed
 
 * Fixed issue with relative paths [#6](../../issues/6)
