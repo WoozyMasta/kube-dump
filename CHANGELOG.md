@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+* Coreutils to docker image for replace busybox utils
+* Automatic publish release action
+
+### Changed
+
+* Simple try to fix run in MacOS
+
 ## [v1.0.3](../../releases/tag/v1.0.3) - 2021-02-17
 
 ### Changed

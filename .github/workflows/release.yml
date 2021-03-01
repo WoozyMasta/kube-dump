@@ -1,0 +1,50 @@
+name: Create Release
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Set env
+        run: echo "TAG=${GITHUB_REF##*/}" >> $GITHUB_ENV
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            Download manually
+            ![kube-dump ${{ env.TAG }}](https://raw.githubusercontent.com/WoozyMasta/kube-dump/${{ env.TAG }}/kube-dump)
+            or execute this:
+
+            ```shell
+            curl -Lso ~/.local/bin/kube-dump \
+              https://raw.githubusercontent.com/WoozyMasta/kube-dump/${{ env.TAG }}/kube-dump && \
+              chmod +x ~/.local/bin/kube-dump
+            ```
+
+            Also you can run in docker
+
+            ```shell
+            docker pull woozymasta/kube-dump:${{ env.TAG }}
+            ```
+          draft: false
+          prerelease: false
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./kube-dump
+          asset_name: kube-dump
