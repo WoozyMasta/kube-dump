@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v1.0.4](../../releases/tag/v1.0.4) - 2021-03-01
+
 ### Added
 
 * Coreutils to docker image for replace busybox utils
