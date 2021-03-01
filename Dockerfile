@@ -3,7 +3,7 @@ FROM alpine:3.13
 LABEL maintainer="woozymasta@gmail.com"
 
 RUN apk add --update --no-cache \
-    bash openssh-client git tar xz gzip bzip2 curl && \
+    bash openssh-client git tar xz gzip bzip2 curl coreutils && \
     curl -sLo /usr/bin/kubectl \
     "https://storage.googleapis.com/kubernetes-release/release/v1.20.3/bin/linux/amd64/kubectl" && \
     curl -sLo /usr/bin/jq \

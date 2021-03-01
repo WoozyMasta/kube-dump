@@ -5,7 +5,7 @@ LABEL maintainer="woozymasta@gmail.com"
 RUN printf '%s\n' 'https://dl-cdn.alpinelinux.org/alpine/edge/testing' \
       >> /etc/apk/repositories && \
     apk add --update --no-cache \
-    bash openssh-client jq yq git tar xz gzip bzip2 kubectl curl
+    bash openssh-client jq yq git tar xz gzip bzip2 kubectl curl coreutils
 
 COPY ./kube-dump /kube-dump
 

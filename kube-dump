@@ -78,7 +78,7 @@ usage () {
 Dump kubernetes cluster resources
 
 Usage:
-  $cmd [command] [[flags]]
+  ${0##*/} [command] [[flags]]
 
 Available Commands:
   all, dump                     Dump all kubernetes resources
@@ -120,7 +120,7 @@ Archivate flags:
       --archive-type            Archive type xz, gz or bz2, default is tar
 
 Example of use:
-  $cmd dump-namespaces -n default,dev -d /mnt/dump -spa --archive-type gz
+  ${0##*/} dump-namespaces -n default,dev -d /mnt/dump -spa --archive-type gz
 
 Report bugs at:
   https://github.com/WoozyMasta/kube-dump/issues
@@ -131,10 +131,7 @@ EOF
 }
 
 # Set common vars
-real_path="$(readlink -f "$0")"
-# working_dir="$(dirname "$real_path")"
 working_dir="$(pwd)"
-cmd="$(basename "$real_path")"
 timestamp="$(date '+%Y.%m.%d_%H-%M')"
 
 # Read vars from env
@@ -192,7 +189,7 @@ while [ $# -ge 1 ]; do
   esac
 done
 
-if [ -n "$*" ]; then
+if [[ -n "$*" && "$OSTYPE" != "darwin"* ]]; then
   fail "extra arguments $*"
 fi
 
