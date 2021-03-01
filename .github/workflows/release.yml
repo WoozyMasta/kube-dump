@@ -22,9 +22,7 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           body: |
-            Download manually
-            ![kube-dump ${{ env.TAG }}](https://raw.githubusercontent.com/WoozyMasta/kube-dump/${{ env.TAG }}/kube-dump)
-            or execute this:
+            Download manually ![kube-dump ${{ env.TAG }}](https://raw.githubusercontent.com/WoozyMasta/kube-dump/${{ env.TAG }}/kube-dump) or execute this:
 
             ```shell
             curl -Lso ~/.local/bin/kube-dump \
@@ -35,7 +33,7 @@ jobs:
             Also you can run in docker
 
             ```shell
-            docker pull woozymasta/kube-dump:${{ env.TAG }}
+            docker pull woozymasta/kube-dump:${GITHUB_REF##*/v}
             ```
           draft: false
           prerelease: false
@@ -48,3 +46,4 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./kube-dump
           asset_name: kube-dump
+          asset_content_type : text/plain
