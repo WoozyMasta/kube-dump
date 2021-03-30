@@ -243,7 +243,7 @@ then
     curl --fail --location --output /dev/null --write-out '%{http_code}\n' --cacert $kube_api_ca \
     -H "Authorization: Bearer $kube_api_token" --silent "https://$kube_api/livez"
   )
-  if [ $_api_code == "200" ]
+  if [ "$_api_code" == "200" ]
   then
     kubectl config set-cluster "${kube_context:-k8s}" \
       --server="https://$kube_api" \
