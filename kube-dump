@@ -226,7 +226,7 @@ require tar bzip2
 [ -n "$kube_context" ] && k_args+=("--context=$kube_context")
 [ -n "$kube_cluster" ] && k_args+=("--cluster=$kube_cluster")
 [ "$kube_insecure_tls" == 'true' ] && \
-  k_args+=("--insecure-skip-tls-verify=false")
+  k_args+=("--insecure-skip-tls-verify=true")
 
 # Use serviceaccount
 if [ -n "$KUBERNETES_SERVICE_HOST" ] && \
@@ -239,10 +239,11 @@ then
   kube_api_token=$(</var/run/secrets/kubernetes.io/serviceaccount/token)
   kube_api_ca=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 
-  if _api_code=$(
-      curl --fail --location --output /dev/null --write-out '%{http_code}\n' \
-      --cacert $kube_api_ca --silent "https://$kube_api/livez"
-    )
+  _api_code=$(
+    curl --fail --location --output /dev/null --write-out '%{http_code}\n' --cacert $kube_api_ca \
+    -H "Authorization: Bearer $kube_api_token" --silent "https://$kube_api/livez"
+  )
+  if [ $_api_code == "200" ]
   then
     kubectl config set-cluster "${kube_context:-k8s}" \
       --server="https://$kube_api" \
