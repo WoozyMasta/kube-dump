@@ -21,7 +21,8 @@ Backup a Kubernetes cluster as a yaml manifest.
 
 ## Description
 
-With this utility you can save your cluster resources as nice yaml manifests without unnecessary metadata.
+With this utility you can save your cluster resources as nice yaml
+manifests without unnecessary metadata.
 
 Key features:
 
@@ -32,30 +33,38 @@ Key features:
 * Can archive and rotate dump archives;
 * Can commit dumps to a git repository and send to a remote repository;
 * You can specify a list of resources to be dumped;
-* It is possible to configure via command line arguments as well as via environment variables.
+* It is possible to configure via command line arguments as well as via
+  environment variables.
 
 Plans to implement:
 
 * Sending dumps to s3 bucket;
 * Sending notifications by email and webhook;****
 * Git-crypt to encrypt secrets
-* Bash autocomplete 
+* Bash autocomplete
 
 ---
 
 [![asciicast](https://raw.githubusercontent.com/WoozyMasta/kube-dump/master/extras/kube-dump.gif)](https://asciinema.org/a/3FfZlP011rF0gj443QnuWdNFE)
 
-## Quick Start Guides 
-* [Run on a local machine](./docs/local.md) (dependencies and a config for kubectl are required)
-* [Run in container](./docs/container.md) (docker, podman, etc. required and a config for kubectl)
-* [Run in kubernetes as pod](./docs/pod.md) (requires access to the kubernetes cluster and config for kubectl)
-* [Run in kubernetes as a cron job using a service account](./docs/conjob.md) (requires access to the kubernetes cluster and the ability to create a role or cluster role) 
+## Quick Start Guides
+
+* [Run on a local machine](./docs/local.md)
+  (dependencies and a config for kubectl are required)
+* [Run in container](./docs/container.md)
+  (docker, podman, etc. required and a config for kubectl)
+* [Run in kubernetes as pod](./docs/pod.md)
+  (requires access to the kubernetes cluster and config for kubectl)
+* [Run in kubernetes as a cron job using a service account](./docs/conjob.md)
+  (requires access to the kubernetes cluster and
+  the ability to create a role or cluster role)
 
 ## Dependencies
 
 Required dependencies:
 
-* [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) - Kubernetes command-line tool
+* [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) -
+  Kubernetes command-line tool
 * [jq](https://github.com/stedolan/jq) - Command-line JSON processor
 * [yq](https://github.com/mikefarah/yq) - Command-line YAML processor
 
@@ -70,7 +79,7 @@ Optional dependencies:
 
 ## Commands and flags
 
-```
+```text
 ./kube-dump [command] [[flags]]
 
 Available Commands:
@@ -118,7 +127,9 @@ Example of use:
 
 ## Environment variables
 
-All environment variables are described in the [.env](./.env) file, you can use them both for the container launch configuration and directly from the [`.env`](./.env) file, it is read automatically at startup.
+All environment variables are described in the [.env](./.env) file,
+you can use them both for the container launch configuration and
+directly from the [`.env`](./.env) file, it is read automatically at startup.
 
 ## Resources default's
 
@@ -127,3 +138,21 @@ All resources automatically discovered from the API if not pass as argument.
 * List of namespaces
 * List of default namespaced resources
 * List of default cluster wide resources
+
+<!--
+Title: Kube-dump
+Description: Backup a Kubernetes cluster as a yaml manifest.
+Author: WoozyMasta
+Keywords:
+  kubernetes save deployment yaml
+  kubectl get yaml file
+  kubectl get yaml from service
+  kubectl get deployment yaml
+  kubectl save yaml
+  kubectl generate yaml
+  kubernetes json to yaml
+  kubernetes export deployment yaml
+  kubernetes dump yaml
+  kubectl dump yaml
+  kubectl describe to yaml
+-->
