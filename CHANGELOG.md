@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v1.0.5](../../releases/tag/v1.0.5) - 2021-04-06
+
+### Changed
+
+* Fixed parameter --kube-insecure-tls [#15](../../issues/15)
+* Fixed missing header issue in ServiceAccount/Rolebinding.
+[#16](../../issues/16)
+
 ## [v1.0.4](../../releases/tag/v1.0.4) - 2021-03-01
 
 ### Added
