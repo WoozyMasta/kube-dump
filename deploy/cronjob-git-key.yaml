@@ -15,7 +15,7 @@ spec:
           serviceAccountName: kube-dump
           containers:
             - name: kube-dump
-              image: woozymasta/kube-dump:1.0
+              image: woozymasta/kube-dump:latest
               imagePullPolicy: IfNotPresent
               envFrom:
                 - secretRef:
