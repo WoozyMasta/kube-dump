@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v1.0.6](../../releases/tag/v1.0.6) - 2021-05-23
+
+### Changed
+
+* Replaced busybox grep with GNU grep [#19](../../issues/19)
+* Updated kubectl to 1.21.1
+* Updated yq to 4.9.3
+
 ## [v1.0.5](../../releases/tag/v1.0.5) - 2021-04-06
 
 ### Changed
