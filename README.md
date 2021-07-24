@@ -55,7 +55,7 @@ Plans to implement:
   (docker, podman, etc. required and a config for kubectl)
 * [Run in kubernetes as pod](./docs/pod.md)
   (requires access to the kubernetes cluster and config for kubectl)
-* [Run in kubernetes as a cron job using a service account](./docs/conjob.md)
+* [Run in kubernetes as a cron job using a service account](./docs/cronjob.md)
   (requires access to the kubernetes cluster and
   the ability to create a role or cluster role)
 
