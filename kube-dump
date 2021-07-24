@@ -433,7 +433,7 @@ if [[ "$mode" =~ ^(dump|all|dump-namespaces|ns)$ ]]; then
   done
 fi
 
-# Work with cluster reosurces
+# Work with cluster resources
 if [[ "$mode" =~ ^(dump|all|dump-cluster|cls)$ ]]; then
 
   heading 'Dump cluster data' "$context"
