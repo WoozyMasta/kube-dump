@@ -17,9 +17,6 @@ spec:
             - name: kube-dump
               image: woozymasta/kube-dump:latest
               imagePullPolicy: IfNotPresent
-              envFrom:
-                - secretRef:
-                    name: kube-dump
               env:
                 - name: MODE
                   value: "dump"
