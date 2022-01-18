@@ -40,9 +40,9 @@ Key features:
 Plans to implement:
 
 * Sending dumps to s3 bucket;
-* Sending notifications by email and webhook;****
-* Git-crypt to encrypt secrets
-* Bash autocomplete
+* Sending notifications by email and webhook;
+* Git-crypt to encrypt secrets;
+* Bash autocomplete.
 
 ---
 
