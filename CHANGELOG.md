@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [v1.0.7](https://github.com/WoozyMasta/kube-dump/releases/tag/v1.0.7) - 2022-01-18
+## [1.0.7](https://github.com/WoozyMasta/kube-dump/releases/tag/1.0.7) - 2022-01-18
 
 ### Added
 
@@ -23,6 +23,7 @@ All notable changes to this project will be documented in this file.
 * Update yq 4.16.2.
 * Update GitHub Actions
 * Fix typos on docs
+* Semver versioning, remove `v` from git tags
 
 ## [v1.0.6](https://github.com/WoozyMasta/kube-dump/releases/tag/v1.0.6) - 2021-05-23
 
