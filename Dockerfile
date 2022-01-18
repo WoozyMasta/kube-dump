@@ -1,11 +1,12 @@
 FROM alpine:3.13
 
-ARG KUBECTL_VERSION="1.21.1"
+ARG KUBECTL_VERSION="1.23.1"
 ARG JQ_VERSION="1.6"
-ARG YQ_VERSION="4.9.3"
+ARG YQ_VERSION="4.16.2"
 
 LABEL maintainer="woozymasta@gmail.com"
 
+# hadolint ignore=DL3018
 RUN apk add --update --no-cache \
     bash openssh-client git tar xz gzip bzip2 curl coreutils grep && \
     curl -sLo /usr/bin/kubectl \
