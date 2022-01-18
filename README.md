@@ -14,6 +14,7 @@ Backup a Kubernetes cluster as a yaml manifest.
 
 * [Description](#description)
 * [Quick Start Guides](#quick-start-guides)
+* [Container Images](#container-images)
 * [Dependencies](#dependencies)
 * [Commands and flags](#commands-and-flags)
 * [Environment variables](#environment-variables)
@@ -58,6 +59,12 @@ Plans to implement:
 * [Run in kubernetes as a cron job using a service account](./docs/cronjob.md)
   (requires access to the kubernetes cluster and
   the ability to create a role or cluster role)
+
+## Container Images
+
+* `docker pull ghcr.io/woozymasta/kube-dump:1.7.0`
+* `docker pull quay.io/woozymasta/kube-dump:1.7.0`
+* `docker pull docker.io/woozymasta/kube-dump:1.7.0`
 
 ## Dependencies
 

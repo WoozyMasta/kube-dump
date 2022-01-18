@@ -4,23 +4,45 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [v1.0.6](../../releases/tag/v1.0.6) - 2021-05-23
+## [v1.0.7](https://github.com/WoozyMasta/kube-dump/releases/tag/v1.0.7) - 2022-01-18
+
+### Added
+
+* Publish image to ghcr container registry
+* Publish image to quay.io container registry
 
 ### Changed
 
-* Replaced busybox grep with GNU grep [#19](../../issues/19)
+* Fix dump of cluster resources to be single item per file
+  [#22](https://github.com/WoozyMasta/kube-dump/pull/22)
+* Delete always changing annotations from HPAs
+  [#23](https://github.com/WoozyMasta/kube-dump/pull/23)
+* Fix deleting multiple archive files
+  [#28](https://github.com/WoozyMasta/kube-dump/pull/28)
+* Update kubectl 1.23.1
+* Update yq 4.16.2.
+* Update GitHub Actions
+* Fix typos on docs
+
+## [v1.0.6](https://github.com/WoozyMasta/kube-dump/releases/tag/v1.0.6) - 2021-05-23
+
+### Changed
+
+* Replaced busybox grep with GNU grep
+  [#19](https://github.com/WoozyMasta/kube-dump/issues/19)
 * Updated kubectl to 1.21.1
 * Updated yq to 4.9.3
 
-## [v1.0.5](../../releases/tag/v1.0.5) - 2021-04-06
+## [v1.0.5](https://github.com/WoozyMasta/kube-dump/releases/tag/v1.0.5) - 2021-04-06
 
 ### Changed
 
-* Fixed parameter --kube-insecure-tls [#15](../../issues/15)
+* Fixed parameter --kube-insecure-tls
+  [#15](https://github.com/WoozyMasta/kube-dump/issues/15)
 * Fixed missing header issue in ServiceAccount/Rolebinding.
-[#16](../../issues/16)
+  [#16](https://github.com/WoozyMasta/kube-dump/issues/16)
 
-## [v1.0.4](../../releases/tag/v1.0.4) - 2021-03-01
+## [v1.0.4](https://github.com/WoozyMasta/kube-dump/releases/tag/v1.0.4) - 2021-03-01
 
 ### Added
 
@@ -31,26 +53,30 @@ All notable changes to this project will be documented in this file.
 
 * Simple try to fix run in MacOS
 
-## [v1.0.3](../../releases/tag/v1.0.3) - 2021-02-17
+## [v1.0.3](https://github.com/WoozyMasta/kube-dump/releases/tag/v1.0.3) - 2021-02-17
 
 ### Changed
 
 * Ditching the test alpine:edge container and moving to version 3.13
 
-## [v1.0.2](../../releases/tag/v1.0.2) - 2021-02-17
+## [v1.0.2](https://github.com/WoozyMasta/kube-dump/releases/tag/v1.0.2) - 2021-02-17
 
 ### Changed
 
-* Fixed issue with relative paths [#6](../../issues/6)
-* Fixed force remove resorces dirs in data dir [#7](../../issues/7)
+* Fixed issue with relative paths
+  [#6](https://github.com/WoozyMasta/kube-dump/issues/6)
+* Fixed force remove resorces dirs in data dir
+  [#7](https://github.com/WoozyMasta/kube-dump/issues/7)
 * Fixed tty detection for output redirects, show plain log messages if not use
 interactive seesion or redirect output to file
-## [v1.0.1](../../releases/tag/v1.0.1) - 2021-02-17
+
+## [v1.0.1](https://github.com/WoozyMasta/kube-dump/releases/tag/v1.0.1) - 2021-02-17
 
 ### Changed
 
 * Fixed issue with trusting keys when first ssh cloning a git repository
 in a container
+
 ## [v1.0.0](/releases/tag/v1.0.0) - 2021-02-07
 
 ### Added
