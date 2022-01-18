@@ -555,7 +555,7 @@ if [ "$archivate" == 'true' ]; then
   # Rotate archives
   if [ -n "$archive_rotate" ]; then
     find "${destination_dir}" -mindepth 1 -maxdepth 1 -type f -name "*.tar" \
-      -name "*.tar.xz" -name "*.tar.gz" -name "*.tar.bz2" \
+      -o -name "*.tar.xz" -o -name "*.tar.gz" -o -name "*.tar.bz2" \
       -mtime +"$archive_rotate" -delete
     success 'Rotatinon for older than' "$archive_rotate days" \
       "*.tar.${archive_type:-xz} archives removed"
