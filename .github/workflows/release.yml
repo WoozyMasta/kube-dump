@@ -5,22 +5,68 @@ on:
       - "v*"
 
 jobs:
-  build:
-    name: Create Release
+  push_to_registries:
+    name: Push Docker image to multiple registries
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: write
     steps:
-      - name: Checkout code
+      - name: Check out the repo
         uses: actions/checkout@v2
+
+      - name: Log in to Docker Hub Container registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Log in to Quay Container registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v1
+        with:
+          registry: quay.io
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Log in to GitHub Container registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          images: |
+            ${{ github.repository }}
+            quay.io/${{ github.repository }}
+            ghcr.io/${{ github.repository }}
+
+      - name: Build and push Docker images
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
       - name: Set env
-        run: echo "TAG=${GITHUB_REF##*/}" >> $GITHUB_ENV
+        id: env
+        run: |
+          echo ::set-output name=PROJECT_NAME::${GITHUB_REF#refs/*/}
+          echo ::set-output name=PROJECT_BRANCH::${GITHUB_REF#refs/heads/}
+          echo ::set-output name=PROJECT_TAG::${GITHUB_REF#refs/tags/}
+
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: ncipollo/release-action@v1
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           body: |
             Download manually ![kube-dump ${{ env.TAG }}](https://raw.githubusercontent.com/WoozyMasta/kube-dump/${{ env.TAG }}/kube-dump) or execute this:
 
@@ -32,18 +78,8 @@ jobs:
 
             Also you can run in docker
 
-            ```shell
-            docker pull woozymasta/kube-dump:${GITHUB_REF##*/v}
-            ```
+            * `docker pull ghcr.io/woozymasta/kube-dump:${{ steps.env.outputs.PROJECT_TAG }}`
+            * `docker pull quay.io/woozymasta/kube-dump:${{ steps.env.outputs.PROJECT_TAG }}`
+            * `docker pull docker.io/woozymasta/kube-dump:${{ steps.env.outputs.PROJECT_TAG }}`
           draft: false
           prerelease: false
-      - name: Upload Release Asset
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./kube-dump
-          asset_name: kube-dump
-          asset_content_type : text/plain
