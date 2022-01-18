@@ -68,11 +68,11 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
-            Download manually ![kube-dump ${{ env.TAG }}](https://raw.githubusercontent.com/WoozyMasta/kube-dump/${{ env.TAG }}/kube-dump) or execute this:
+            Download manually ![kube-dump ${{ steps.env.outputs.PROJECT_TAG }}](https://raw.githubusercontent.com/WoozyMasta/kube-dump/${{ steps.env.outputs.PROJECT_TAG }}/kube-dump) or execute this:
 
             ```shell
             curl -Lso ~/.local/bin/kube-dump \
-              https://raw.githubusercontent.com/WoozyMasta/kube-dump/${{ env.TAG }}/kube-dump && \
+              https://raw.githubusercontent.com/WoozyMasta/kube-dump/${{ steps.env.outputs.PROJECT_TAG }}/kube-dump && \
               chmod +x ~/.local/bin/kube-dump
             ```
 
