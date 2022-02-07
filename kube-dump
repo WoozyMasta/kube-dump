@@ -147,7 +147,7 @@ args=$(
   getopt \
     -l "namespaces:,namespaced-resources:,cluster-resources:" \
     -l "kube-config:,kube-context:,kube-cluster:,kube-insecure-tls" \
-    -l "help,silent,destination:,force-remove," \
+    -l "help,silent,destination:,force-remove,detailed" \
     -l "git-commit,git-push,git-branch:,git-commit-user:,git-commit-email:" \
     -l "git-remote-name:,git-remote-url:" \
     -l "archivate,archive-rotate-days:,archive-type:" \
@@ -169,6 +169,7 @@ while [ $# -ge 1 ]; do
     -h|--help)                  usage;;
     -s|--silent)                silent='true';                           shift;;
     -d|--destination-dir)       destination_dir="$2";             shift; shift;;
+       --detailed)              detailed='true';                         shift;;
 # Dump opts
     -f|--force-remove)          force_remove='true';                     shift;;
 # Commit opts
@@ -321,6 +322,39 @@ else
   cluster_resources=${cluster_resources:-$CLUSTER_RESOURCES}
 fi
 
+# Filter fields
+jqFilter=$(cat <<-END
+    del(
+        .metadata.annotations."autoscaling.alpha.kubernetes.io/conditions",
+        .metadata.annotations."autoscaling.alpha.kubernetes.io/current-metrics",
+        .metadata.annotations."control-plane.alpha.kubernetes.io/leader",
+        .metadata.annotations."deployment.kubernetes.io/revision",
+        .metadata.annotations."kubectl.kubernetes.io/last-applied-configuration",
+        .metadata.annotations."kubernetes.io/service-account.uid",
+        .metadata.annotations."pv.kubernetes.io/bind-completed",
+        .metadata.annotations."pv.kubernetes.io/bound-by-controller",
+        .metadata.finalizers,
+        .metadata.managedFields,
+        .metadata.creationTimestamp,
+        .metadata.generation,
+        .metadata.resourceVersion,
+        .metadata.selfLink,
+        .metadata.uid,
+        .spec.clusterIP,
+        .spec.progressDeadlineSeconds,
+        .spec.revisionHistoryLimit,
+        .spec.template.metadata.annotations."kubectl.kubernetes.io/restartedAt",
+        .spec.template.metadata.creationTimestamp,
+        .spec.volumeName,
+        .spec.volumeMode,
+        .status
+      )
+END
+    )
+if [ $detailed == 'true' ]; then
+  jqFilter=''
+fi
+
 # Dump dir
 destination_dir="${destination_dir:-${DESTINATION_DIR:-$working_dir/data}}"
 destination_dir="$(realpath "$destination_dir" --canonicalize-missing)"
@@ -375,6 +409,9 @@ if [[ "$mode" =~ ^(dump|all|dump-namespaces|ns)$ ]]; then
     # Iterate over resources
     for resource in ${namespaced_resources//,/ }; do
 
+      # Create resource dir
+      [ -d "$destination_dir/$ns/$resource" ] || mkdir -p "$destination_dir/$ns/$resource"
+
       # Iterate over only accessible resources
       while read -r name; do
         [ -z "$name" ] && continue
@@ -396,33 +433,9 @@ if [[ "$mode" =~ ^(dump|all|dump-namespaces|ns)$ ]]; then
           --output='json' "$resource" "$name" "${k_args[@]}" 2>/dev/null | \
         jq --exit-status --compact-output --monochrome-output \
           --raw-output --sort-keys 2>/dev/null \
-          'del(
-            .metadata.annotations."autoscaling.alpha.kubernetes.io/conditions",
-            .metadata.annotations."autoscaling.alpha.kubernetes.io/current-metrics",
-            .metadata.annotations."control-plane.alpha.kubernetes.io/leader",
-            .metadata.annotations."deployment.kubernetes.io/revision",
-            .metadata.annotations."kubectl.kubernetes.io/last-applied-configuration",
-            .metadata.annotations."kubernetes.io/service-account.uid",
-            .metadata.annotations."pv.kubernetes.io/bind-completed",
-            .metadata.annotations."pv.kubernetes.io/bound-by-controller",
-            .metadata.finalizers,
-            .metadata.managedFields,
-            .metadata.creationTimestamp,
-            .metadata.generation,
-            .metadata.resourceVersion,
-            .metadata.selfLink,
-            .metadata.uid,
-            .spec.clusterIP,
-            .spec.progressDeadlineSeconds,
-            .spec.revisionHistoryLimit,
-            .spec.template.metadata.annotations."kubectl.kubernetes.io/restartedAt",
-            .spec.template.metadata.creationTimestamp,
-            .spec.volumeName,
-            .spec.volumeMode,
-            .status
-          )' | \
+          "$jqFilter" | \
       yq eval --prettyPrint --no-colors --exit-status - \
-        >"$destination_dir/$ns/${name//:/-}_$resource".yaml 2>/dev/null && \
+        >"$destination_dir/$ns/$resource/${name//:/-}".yaml 2>/dev/null && \
         msg-end "$resource" "$name" || msg-fail "$resource" "$name"
 
       done < <(
