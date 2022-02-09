@@ -62,9 +62,9 @@ Plans to implement:
 
 ## Container Images
 
-* `docker pull ghcr.io/woozymasta/kube-dump:1.0.7`
-* `docker pull quay.io/woozymasta/kube-dump:1.0.7`
-* `docker pull docker.io/woozymasta/kube-dump:1.0.7`
+* [`docker pull ghcr.io/woozymasta/kube-dump:1.1.0`](https://github.com/WoozyMasta/kube-dump/pkgs/container/kube-dump)
+* [`docker pull quay.io/woozymasta/kube-dump:1.1.0`](https://quay.io/repository/woozymasta/kube-dump)
+* [`docker pull docker.io/woozymasta/kube-dump:1.1.0`](https://hub.docker.com/r/woozymasta/kube-dump)
 
 ## Dependencies
 
