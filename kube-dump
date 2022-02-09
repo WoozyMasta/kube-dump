@@ -395,7 +395,7 @@ if [ "$git_push" == 'true' ] && [ ! -d "$destination_dir/.git/" ]; then
 
   if ! grep --quiet --extended-regexp 'https?:\/\/' <<< "$git_remote_url"; then
 
-    _remote_url=$(sed -r 's|.*@([A-Za-z0-9\-\.]+):.*|\1|' <<< "$git_remote_url")
+    _remote_url=$(sed -r 's|.*@([A-Za-z0-9\.-]+):.*|\1|' <<< "$git_remote_url")
     ! grep --quiet "^$_remote_url " ~/.ssh/known_hosts >/dev/null 2>&1 && \
       ssh-keyscan "$_remote_url" >> ~/.ssh/known_hosts 2>/dev/null
 
