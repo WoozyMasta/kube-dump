@@ -104,6 +104,9 @@ Flags:
   -s, --silent                  Execute silently, suppress all stdout messages
   -d, --destination-dir         Path to dir for store dumps, default ./data
   -f, --force-remove            Delete resources in data directory before launch
+      --detailed                Do not remove detailed state specific fields
+      --output-by-type          Organize output into directories by resource type
+      --flat                    Organize all resources of the same type in the same file
 
 Kubernetes flags:
   -n, --namespaces              List of kubernetes namespaces
