@@ -95,6 +95,9 @@ Flags:
   -s, --silent                  Execute silently, suppress all stdout messages
   -d, --destination-dir         Path to dir for store dumps, default ./data
   -f, --force-remove            Delete resources in data directory before launch
+      --detailed                Do not remove detailed state specific fields
+      --output-by-type          Organize output into directories by resource type
+      --flat                    Organize all resources of the same type in the same file
 
 Kubernetes flags:
   -n, --namespaces              List of kubernetes namespaces
@@ -147,7 +150,7 @@ args=$(
   getopt \
     -l "namespaces:,namespaced-resources:,cluster-resources:" \
     -l "kube-config:,kube-context:,kube-cluster:,kube-insecure-tls" \
-    -l "help,silent,destination:,force-remove," \
+    -l "help,silent,destination:,force-remove,detailed,output-by-type,flat" \
     -l "git-commit,git-push,git-branch:,git-commit-user:,git-commit-email:" \
     -l "git-remote-name:,git-remote-url:" \
     -l "archivate,archive-rotate-days:,archive-type:" \
@@ -169,6 +172,9 @@ while [ $# -ge 1 ]; do
     -h|--help)                  usage;;
     -s|--silent)                silent='true';                           shift;;
     -d|--destination-dir)       destination_dir="$2";             shift; shift;;
+       --detailed)              detailed='true';                         shift;;
+       --output-by-type)        output_by_type='true';                   shift;;
+       --flat)                  output_flat='true';                      shift;;
 # Dump opts
     -f|--force-remove)          force_remove='true';                     shift;;
 # Commit opts
@@ -321,6 +327,53 @@ else
   cluster_resources=${cluster_resources:-$CLUSTER_RESOURCES}
 fi
 
+# default jq filter removes detailed fiends from cluster resources
+cluster_jq_filter=$(cat <<-END
+  del(
+    .metadata.annotations."kubectl.kubernetes.io/last-applied-configuration",
+    .metadata.annotations."control-plane.alpha.kubernetes.io/leader",
+    .metadata.uid,
+    .metadata.selfLink,
+    .metadata.resourceVersion,
+    .metadata.creationTimestamp,
+    .metadata.generation
+  )
+END
+)
+# default jq filter removes detailed fiends from namespaced resources
+namespaced_jq_filter=$(cat <<-END
+  del(
+    .metadata.annotations."autoscaling.alpha.kubernetes.io/conditions",
+    .metadata.annotations."autoscaling.alpha.kubernetes.io/current-metrics",
+    .metadata.annotations."control-plane.alpha.kubernetes.io/leader",
+    .metadata.annotations."deployment.kubernetes.io/revision",
+    .metadata.annotations."kubectl.kubernetes.io/last-applied-configuration",
+    .metadata.annotations."kubernetes.io/service-account.uid",
+    .metadata.annotations."pv.kubernetes.io/bind-completed",
+    .metadata.annotations."pv.kubernetes.io/bound-by-controller",
+    .metadata.finalizers,
+    .metadata.managedFields,
+    .metadata.creationTimestamp,
+    .metadata.generation,
+    .metadata.resourceVersion,
+    .metadata.selfLink,
+    .metadata.uid,
+    .spec.clusterIP,
+    .spec.progressDeadlineSeconds,
+    .spec.revisionHistoryLimit,
+    .spec.template.metadata.annotations."kubectl.kubernetes.io/restartedAt",
+    .spec.template.metadata.creationTimestamp,
+    .spec.volumeName,
+    .spec.volumeMode,
+    .status
+  )
+END
+)
+# Optionally remove jq del
+if [ "$detailed" == 'true' ]; then
+  namespaced_jq_filter=''
+fi
+
 # Dump dir
 destination_dir="${destination_dir:-${DESTINATION_DIR:-$working_dir/data}}"
 destination_dir="$(realpath "$destination_dir" --canonicalize-missing)"
@@ -359,77 +412,91 @@ fi
 success 'Dump data in' "$destination_dir" 'directory' ''
 score=0
 
-# Work with namespaced reosurces
+# Work with namespaced resources
 if [[ "$mode" =~ ^(dump|all|dump-namespaces|ns)$ ]]; then
 
   for ns in ${namespaces//,/ }; do
+
     # Check namespace exist
     if ! kubectl get ns "$ns" "${k_args[@]}" >/dev/null 2>&1; then
       warn "Namespace \"$ns\" not found"
       continue
     fi
+
     # Create namespace dir
-    [ -d "$destination_dir/$ns" ] || mkdir -p "$destination_dir/$ns"
+    destination_namespace_dir="$destination_dir/$ns"
+    [ -d "$destination_namespace_dir" ] || mkdir -p "$destination_namespace_dir"
     heading 'Dump namespace' "$ns"
 
     # Iterate over resources
     for resource in ${namespaced_resources//,/ }; do
 
-      # Iterate over only accessible resources
-      while read -r name; do
-        [ -z "$name" ] && continue
+      # By default, output all resources in the same namespace dir
+      destination_resource_dir="$destination_namespace_dir"
 
-        # Skip service-account-token secrets
-        if [ "$resource" == 'secret' ]; then
-          type=$(
-            kubectl get --namespace="${ns}" --output=jsonpath="{.type}" \
-              secret "$name" "${k_args[@]}"
-            )
-          [ "$type" == 'kubernetes.io/service-account-token' ] && continue
-          unset type
-        fi
+      # Optionally create resource dir
+      if [ "$output_by_type" == 'true' ]; then
+        destination_resource_dir="$destination_resource_dir/$resource"
+        [ -d "$destination_resource_dir" ] || mkdir -p "$destination_resource_dir"
+      fi
 
-        msg-start "$resource" "$name"
+      # Destination file name suffix, eg "_pod" or empty
+      destination_suffix="_$resource"
+      if [ "$output_by_type" == 'true' ]; then
+        destination_suffix="" # resource suffix was moved to dir
+      fi
 
-        # Save resource to file
+      if [ "$output_flat" == 'true' ]; then
+        msg-start "$resource"
+
+        destination_resource_name="all${destination_suffix}.yaml"
+
+        # Save resources to file
         kubectl --namespace="${ns}" get \
-          --output='json' "$resource" "$name" "${k_args[@]}" 2>/dev/null | \
+          --output='json' "$resource" "${k_args[@]}" 2>/dev/null | \
         jq --exit-status --compact-output --monochrome-output \
           --raw-output --sort-keys 2>/dev/null \
-          'del(
-            .metadata.annotations."autoscaling.alpha.kubernetes.io/conditions",
-            .metadata.annotations."autoscaling.alpha.kubernetes.io/current-metrics",
-            .metadata.annotations."control-plane.alpha.kubernetes.io/leader",
-            .metadata.annotations."deployment.kubernetes.io/revision",
-            .metadata.annotations."kubectl.kubernetes.io/last-applied-configuration",
-            .metadata.annotations."kubernetes.io/service-account.uid",
-            .metadata.annotations."pv.kubernetes.io/bind-completed",
-            .metadata.annotations."pv.kubernetes.io/bound-by-controller",
-            .metadata.finalizers,
-            .metadata.managedFields,
-            .metadata.creationTimestamp,
-            .metadata.generation,
-            .metadata.resourceVersion,
-            .metadata.selfLink,
-            .metadata.uid,
-            .spec.clusterIP,
-            .spec.progressDeadlineSeconds,
-            .spec.revisionHistoryLimit,
-            .spec.template.metadata.annotations."kubectl.kubernetes.io/restartedAt",
-            .spec.template.metadata.creationTimestamp,
-            .spec.volumeName,
-            .spec.volumeMode,
-            .status
-          )' | \
-      yq eval --prettyPrint --no-colors --exit-status - \
-        >"$destination_dir/$ns/${name//:/-}_$resource".yaml 2>/dev/null && \
-        msg-end "$resource" "$name" || msg-fail "$resource" "$name"
+          "$namespaced_jq_filter" | \
+        yq eval --prettyPrint --no-colors --exit-status - \
+          >"$destination_resource_dir/$destination_resource_name" 2>/dev/null && \
+          msg-end "$resource" || msg-fail "$resource"
 
-      done < <(
-        kubectl --namespace="${ns}" get "$resource" \
-          --output='custom-columns=NAME:.metadata.name' \
-          --no-headers "${k_args[@]}" 2>/dev/null
-        )
+      else
+        # Iterate over only accessible resources
+        while read -r name; do
+          [ -z "$name" ] && continue
+
+          # Skip service-account-token secrets
+          if [ "$resource" == 'secret' ]; then
+            type=$(
+              kubectl get --namespace="${ns}" --output=jsonpath="{.type}" \
+                secret "$name" "${k_args[@]}"
+              )
+            [ "$type" == 'kubernetes.io/service-account-token' ] && continue
+            unset type
+          fi
+
+          msg-start "$resource" "$name"
+
+          destination_resource_name="${name//:/-}${destination_suffix}.yaml"
+
+          # Save resource to file
+          kubectl --namespace="${ns}" get \
+            --output='json' "$resource" "$name" "${k_args[@]}" 2>/dev/null | \
+          jq --exit-status --compact-output --monochrome-output \
+            --raw-output --sort-keys 2>/dev/null \
+            "$namespaced_jq_filter" | \
+          yq eval --prettyPrint --no-colors --exit-status - \
+            >"$destination_resource_dir/$destination_resource_name" 2>/dev/null && \
+            msg-end "$resource" "$name" || msg-fail "$resource" "$name"
+
+        done < <(
+          kubectl --namespace="${ns}" get "$resource" \
+            --output='custom-columns=NAME:.metadata.name' \
+            --no-headers "${k_args[@]}" 2>/dev/null
+          )
+      fi
+      # Finished with resource
     done
     success 'Namespace' "$ns" 'resources dump completed' ''
   done
@@ -439,36 +506,65 @@ fi
 if [[ "$mode" =~ ^(dump|all|dump-cluster|cls)$ ]]; then
 
   heading 'Dump cluster data' "$context"
+
+  # Create cluster directory
+  destination_resource_dir="$destination_dir/cluster"
+  [ -d "$destination_resource_dir" ] || mkdir -p "$destination_resource_dir"
+
   # Iterate over resources
   for resource in ${cluster_resources//,/ }; do
 
-    # Iterate over only accessible resources
-    while read -r name; do
-      [ -d "$destination_dir/cluster" ] || mkdir -p "$destination_dir/cluster"
-      msg-start "$resource" "$name"
+    # Optionally create resource dir
+    if [ "$output_by_type" == 'true' ]; then
+      destination_resource_dir="$destination_resource_dir/$resource"
+      [ -d "$destination_resource_dir" ] || mkdir -p "$destination_resource_dir"
+    fi
+
+    # Destination file name suffix, eg "_pod" or empty
+    destination_suffix="_$resource"
+    if [ "$output_by_type" == 'true' ]; then
+      destination_suffix="" # resource suffix was moved to dir
+    fi
+
+    if [ "$output_flat" == 'true' ]; then
+      msg-start "$resource"
+
+      destination_resource_name="all${destination_suffix}.yaml"
 
       # Save resource to file
-      kubectl get --output='json' "$resource" "$name" "${k_args[@]}" | \
+      kubectl get \
+        --output='json' "$resource" "${k_args[@]}" | \
+      jq --exit-status --compact-output --monochrome-output \
+        --raw-output --sort-keys 2>/dev/null \
+        "$cluster_jq_filter" | \
+      yq eval --prettyPrint --no-colors --exit-status - \
+        >"$destination_resource_dir/$destination_resource_name" 2>/dev/null && \
+        msg-end "$resource" || msg-fail "$resource"
+
+    else
+      # Iterate over only accessible resources
+      while read -r name; do
+        msg-start "$resource" "$name"
+
+        destination_resource_name="${name//:/-}${destination_suffix}.yaml"
+
+        # Save resource to file
+        kubectl get \
+          --output='json' "$resource" "$name" "${k_args[@]}" | \
         jq --exit-status --compact-output --monochrome-output \
           --raw-output --sort-keys 2>/dev/null \
-        'del(
-          .metadata.annotations."kubectl.kubernetes.io/last-applied-configuration",
-          .metadata.annotations."control-plane.alpha.kubernetes.io/leader",
-          .metadata.uid,
-          .metadata.selfLink,
-          .metadata.resourceVersion,
-          .metadata.creationTimestamp,
-          .metadata.generation
-        )' | \
-      yq eval --prettyPrint --no-colors --exit-status - \
-        >"$destination_dir/cluster/${name//:/-}_$resource".yaml 2>/dev/null && \
-      msg-end "$resource" "$name" || msg-fail "$resource" "$name"
+          "$cluster_jq_filter" | \
+        yq eval --prettyPrint --no-colors --exit-status - \
+          >"$destination_resource_dir/$destination_resource_name" 2>/dev/null && \
+          msg-end "$resource" "$name" || msg-fail "$resource" "$name"
 
-    done < <(
-      kubectl get "$resource" \
-        --output='custom-columns=NAME:.metadata.name' \
-        --no-headers "${k_args[@]}" 2>/dev/null
-      )
+      done < <(
+        kubectl get "$resource" \
+          --output='custom-columns=NAME:.metadata.name' \
+          --no-headers "${k_args[@]}" 2>/dev/null
+        )
+    fi
+    # Finished with resource
   done
   success 'Cluster' "$context" 'resources dump completed' ''
 fi
