@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.1.0](https://github.com/WoozyMasta/kube-dump/releases/tag/1.1.0) - 2022-02-09
+
+### Added
+
+* option `--detailed` for not remove detailed state specific fields in files
+  [#29](https://github.com/WoozyMasta/kube-dump/pull/29)
+* option `--output-by-type` for organize output into directories by resource type
+  [#29](https://github.com/WoozyMasta/kube-dump/pull/29)
+* option `--flat` for organize all resources of the same type in the same file
+  [#29](https://github.com/WoozyMasta/kube-dump/pull/29)
+* package `bind-tools` for fix some DNS resolution issues
+
+### Changed
+
+* Base Alpine image version updated to **3.15** from **3.13**
+* `yq` and `jq` install from Alpine repository
+* `kubectl` update to **1.23.3** from **1.23.1**
+
 ## [1.0.7](https://github.com/WoozyMasta/kube-dump/releases/tag/1.0.7) - 2022-01-18
 
 ### Added
