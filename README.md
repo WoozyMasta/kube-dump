@@ -19,6 +19,7 @@ Backup a Kubernetes cluster as a yaml manifest.
 * [Commands and flags](#commands-and-flags)
 * [Environment variables](#environment-variables)
 * [Resources default's](#resources-defaults)
+* [Plans for further development](#plans-for-further-development)
 
 ## Description
 
@@ -37,15 +38,6 @@ Key features:
 * It is possible to configure via command line arguments as well as via
   environment variables.
 
-Plans to implement:
-
-* Sending dumps to s3 bucket;
-* Sending notifications by email and webhook;
-* Git-crypt to encrypt secrets;
-* Bash autocomplete.
-
----
-
 [![asciicast](https://raw.githubusercontent.com/WoozyMasta/kube-dump/master/extras/kube-dump.gif)](https://asciinema.org/a/3FfZlP011rF0gj443QnuWdNFE)
 
 ## Quick Start Guides
@@ -62,27 +54,27 @@ Plans to implement:
 
 ## Container Images
 
-* [`docker pull ghcr.io/woozymasta/kube-dump:1.1.0`](https://github.com/WoozyMasta/kube-dump/pkgs/container/kube-dump)
-* [`docker pull quay.io/woozymasta/kube-dump:1.1.0`](https://quay.io/repository/woozymasta/kube-dump)
-* [`docker pull docker.io/woozymasta/kube-dump:1.1.0`](https://hub.docker.com/r/woozymasta/kube-dump)
+* [`docker pull ghcr.io/woozymasta/kube-dump:1.1.1`](https://github.com/WoozyMasta/kube-dump/pkgs/container/kube-dump)
+* [`docker pull quay.io/woozymasta/kube-dump:1.1.1`](https://quay.io/repository/woozymasta/kube-dump)
+* [`docker pull docker.io/woozymasta/kube-dump:1.1.1`](https://hub.docker.com/r/woozymasta/kube-dump)
 
 ## Dependencies
 
 Required dependencies:
 
-* [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) -
+* [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/) -
   Kubernetes command-line tool
-* [jq](https://github.com/stedolan/jq) - Command-line JSON processor
-* [yq](https://github.com/mikefarah/yq) - Command-line YAML processor
+* [`jq`](https://github.com/stedolan/jq) - Command-line JSON processor
+* [`yq`](https://github.com/mikefarah/yq) - Command-line YAML processor
 
 Optional dependencies:
 
-* curl - Used to check kubernetes api livez probe when use serviceaccount
-* git - Used to store backups as a git repository
-* tar - Used to create backup archives with one of the compression libraries:
-  * xz - a lossless data compression file format based on the LZMA algorithm
-  * gzip - single-file/stream lossless data compression utility
-  * bzip2 - compression program that uses the Burrows–Wheeler algorithm
+* `curl` - Used to check kubernetes api livez probe when use serviceaccount
+* `git` - Used to store backups as a git repository
+* `tar` - Used to create backup archives with one of the compression libraries:
+  * `xz` - a lossless data compression file format based on the LZMA algorithm
+  * `gzip` - single-file/stream lossless data compression utility
+  * `bzip2` - compression program that uses the Burrows–Wheeler algorithm
 
 ## Commands and flags
 
@@ -100,36 +92,37 @@ For example:
   --destination-dir == DESTINATION_DIR 
 
 Flags:
-  -h, --help                    This help
-  -s, --silent                  Execute silently, suppress all stdout messages
-  -d, --destination-dir         Path to dir for store dumps, default ./data
-  -f, --force-remove            Delete resources in data directory before launch
-      --detailed                Do not remove detailed state specific fields
-      --output-by-type          Organize output into directories by resource type
-      --flat                    Organize all resources of the same type in the same file
+  -h, --help                  This help
+  -s, --silent                Execute silently, suppress all stdout messages
+  -d, --destination-dir       Path to dir for store dumps, default ./data
+  -f, --force-remove          Delete resources in data directory before launch
+      --detailed              Do not remove detailed state specific fields
+      --output-by-type        Organize output into directories by resource type
+      --flat                  Organize all resources of the same type in the
+                              same file
 
 Kubernetes flags:
-  -n, --namespaces              List of kubernetes namespaces
-  -r, --namespaced-resources    List of namespaced resources
-  -k, --cluster-resources       List of cluster resources
-      --kube-config             Path to kubeconfig file
-      --kube-context            The name of the kubeconfig context to use
-      --kube-cluster            The name of the kubeconfig cluster to use
-      --kube-insecure-tls       Skip check server's certificate for validity
+  -n, --namespaces            List of kubernetes namespaces
+  -r, --namespaced-resources  List of namespaced resources
+  -k, --cluster-resources     List of cluster resources
+      --kube-config           Path to kubeconfig file
+      --kube-context          The name of the kubeconfig context to use
+      --kube-cluster          The name of the kubeconfig cluster to use
+      --kube-insecure-tls     Skip check server's certificate for validity
 
 Git commit flags:
-  -c, --git-commit              Commit changes
-  -p, --git-push                Commit changes and push to origin
-  -b, --git-branch              Branch name
-      --git-commit-user         Commit author username
-      --git-commit-email        Commit author email
-      --git-remote-name         Remote repo name, defualt is origin
-      --git-remote-url          Remote repo URL
+  -c, --git-commit            Commit changes
+  -p, --git-push              Commit changes and push to origin
+  -b, --git-branch            Branch name
+      --git-commit-user       Commit author username
+      --git-commit-email      Commit author email
+      --git-remote-name       Remote repo name, defualt is origin
+      --git-remote-url        Remote repo URL
 
 Archivate flags:
-  -a, --archivate               Create archive of data dir
-      --archive-rotate-days     Rotate archives older than N days
-      --archive-type            Archive type xz, gz or bz2, default is tar
+  -a, --archivate             Create archive of data dir
+      --archive-rotate-days   Rotate archives older than N days
+      --archive-type          Archive type xz, gz or bz2, default is tar
 
 Example of use:
   $cmd dump-namespaces -n default,dev -d /mnt/dump -spa --archive-type gz
@@ -137,7 +130,7 @@ Example of use:
 
 ## Environment variables
 
-All environment variables are described in the [.env](./.env) file,
+All environment variables are described in the [`.env`](./.env) file,
 you can use them both for the container launch configuration and
 directly from the [`.env`](./.env) file, it is read automatically at startup.
 
@@ -148,6 +141,13 @@ All resources automatically discovered from the API if not pass as argument.
 * List of namespaces
 * List of default namespaced resources
 * List of default cluster wide resources
+
+## Plans for further development 
+
+* Sending dumps to s3 bucket;
+* Sending notifications by email and webhook;
+* Git-crypt to encrypt secrets;
+* Bash autocomplete.
 
 <!--
 Title: Kube-dump

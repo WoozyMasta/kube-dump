@@ -13,7 +13,7 @@ You can read about CronJobs in [doc](https://kubernetes.io/docs/concepts/workloa
 ## Create namespace
 
 First, let's create a namespace kube-dump (if you want to use a different name,
-you will need to edit it in all the necessary manifests) 
+you will need to edit it in all the necessary manifests)
 
 ```shell
 kubectl create ns kube-dump

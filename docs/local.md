@@ -1,6 +1,7 @@
 # Run on a local machine
 
-An example of installing kube-dump and dependencies on a local system to work with kubernetes clusters with which you work through kubectl 
+An example of installing kube-dump and dependencies on a local system to work
+with kubernetes clusters with which you work through kubectl
 
 ## Clone this repo
 
