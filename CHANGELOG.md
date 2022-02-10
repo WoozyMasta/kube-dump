@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.1.1](https://github.com/WoozyMasta/kube-dump/releases/tag/1.1.1) - 2022-02-10
+
+### Changed
+
+* fixed the sed regex to match the hyphen in `git_remote_url`
+  [#30](https://github.com/WoozyMasta/kube-dump/pull/30)
+
 ## [1.1.0](https://github.com/WoozyMasta/kube-dump/releases/tag/1.1.0) - 2022-02-09
 
 ### Added
