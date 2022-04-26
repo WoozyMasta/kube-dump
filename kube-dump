@@ -66,7 +66,7 @@ fail () {
 # Check command is exist
 require () {
   for command in "$@"; do
-    if ! [ -x "$(command -v "$command")" ]; then
+    if [ ! -x "$(command -v "$command")" ]; then
       fail "'$command' util not found, please install it first"
     fi
   done
