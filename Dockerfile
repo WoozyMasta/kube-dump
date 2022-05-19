@@ -1,6 +1,6 @@
 FROM alpine:3.15
 
-ARG KUBECTL_VERSION="1.23.3"
+ARG KUBECTL_VERSION="1.24.0"
 
 LABEL maintainer="woozymasta@gmail.com"
 

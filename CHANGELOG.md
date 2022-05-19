@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.1.2](https://github.com/WoozyMasta/kube-dump/releases/tag/1.1.2) - 2022-05-19
+
+### Changed
+
+* Update kubectl 1.23.3 -> 1.24.0
+
 ## [1.1.1](https://github.com/WoozyMasta/kube-dump/releases/tag/1.1.1) - 2022-02-10
 
 ### Changed
