@@ -98,6 +98,7 @@ Flags:
       --detailed                Do not remove detailed state specific fields
       --output-by-type          Organize output into directories by resource type
       --flat                    Organize all resources of the same type in the same file
+      --ignore-cluster-info     Ignore cluster-info fail (useful for OpenShift w/o full admin permissions)
 
 Kubernetes flags:
   -n, --namespaces              List of kubernetes namespaces
@@ -150,7 +151,7 @@ args=$(
   getopt \
     -l "namespaces:,namespaced-resources:,cluster-resources:" \
     -l "kube-config:,kube-context:,kube-cluster:,kube-insecure-tls" \
-    -l "help,silent,destination:,force-remove,detailed,output-by-type,flat" \
+    -l "help,silent,destination:,force-remove,detailed,output-by-type,flat,ignore-cluster-info" \
     -l "git-commit,git-push,git-branch:,git-commit-user:,git-commit-email:" \
     -l "git-remote-name:,git-remote-url:" \
     -l "archivate,archive-rotate-days:,archive-type:" \
@@ -175,6 +176,7 @@ while [ $# -ge 1 ]; do
        --detailed)              detailed='true';                         shift;;
        --output-by-type)        output_by_type='true';                   shift;;
        --flat)                  output_flat='true';                      shift;;
+       --ignore-cluster-info)   ignore_cluster_info="true";              shift;;
 # Dump opts
     -f|--force-remove)          force_remove='true';                     shift;;
 # Commit opts
@@ -204,6 +206,7 @@ fi
 : "${detailed:=$DETAILED}"
 : "${output_by_type:=$OUTPUT_BY_TYPE}"
 : "${output_flat:=$FLAT}"
+: "${ignore_cluster_info:=$IGNORE_CLUSTER_INFO}"
 : "${kube_config:=$KUBE_CONFIG}"
 : "${kube_context:=$KUBE_CONTEXT}"
 : "${kube_cluster:=$KUBE_CLUSTER}"
@@ -295,8 +298,12 @@ if [ -n "$kube_cluster" ]; then
 fi
 
 # Try get cluster info
-kubectl cluster-info "${k_args[@]}" >/dev/null || \
-  fail "Cluster $kube_api not accessible"
+if [ "$ignore_cluster_info" != 'true' ]; then
+  kubectl cluster-info "${k_args[@]}" >/dev/null || \
+    fail "Cluster $kube_api not accessible. See --ignore-cluster-info option."
+else
+  warn "Ignoring cluster-info check"
+fi
 
 # Set namespaces list
 if [ -z "${namespaces:-$NAMESPACES}" ]; then
