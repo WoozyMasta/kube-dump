@@ -206,7 +206,7 @@ fi
 : "${detailed:=$DETAILED}"
 : "${output_by_type:=$OUTPUT_BY_TYPE}"
 : "${output_flat:=$FLAT}"
-: "${ignore_cluster_info:=$IGONRE_CLUSTER_INFO}"
+: "${ignore_cluster_info:=$IGNORE_CLUSTER_INFO}"
 : "${kube_config:=$KUBE_CONFIG}"
 : "${kube_context:=$KUBE_CONTEXT}"
 : "${kube_cluster:=$KUBE_CLUSTER}"
