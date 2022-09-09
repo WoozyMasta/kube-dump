@@ -72,6 +72,29 @@ require () {
   done
 }
 
+# sort, filter, and transform input json into
+# more human readable output in requested format
+# $1: requested format [ json | yaml ]
+# $2: jq filter to apply
+output_formatting () {
+    case $1 in
+        json)
+            jq --monochrome-output \
+               --raw-output --sort-keys 2>/dev/null \
+               "$2"
+            ;;
+        yaml)
+            jq --exit-status --compact-output --monochrome-output \
+               --raw-output --sort-keys 2>/dev/null \
+               "$2" | \
+               yq eval --prettyPrint --no-colors --exit-status -
+            ;;
+        *)
+            fail "Invalid output formatting type $1"
+            ;;
+    esac
+}
+
 # Usage message
 usage () {
   cat <<-EOF
@@ -98,6 +121,7 @@ Flags:
       --detailed                Do not remove detailed state specific fields
       --output-by-type          Organize output into directories by resource type
       --flat                    Organize all resources of the same type in the same file
+      --output-format           Write output as yaml or json, default yaml
 
 Kubernetes flags:
   -n, --namespaces              List of kubernetes namespaces
@@ -154,6 +178,7 @@ args=$(
     -l "git-commit,git-push,git-branch:,git-commit-user:,git-commit-email:" \
     -l "git-remote-name:,git-remote-url:" \
     -l "archivate,archive-rotate-days:,archive-type:" \
+    -l "output-format:" \
     -o "n:,r:,k:,h,s,d:,f,c,p,b:,a" -- "${@:2}"
 )
 eval set -- "$args"
@@ -175,6 +200,7 @@ while [ $# -ge 1 ]; do
        --detailed)              detailed='true';                         shift;;
        --output-by-type)        output_by_type='true';                   shift;;
        --flat)                  output_flat='true';                      shift;;
+       --output-format)         output_format="$2";               shift; shift;;
 # Dump opts
     -f|--force-remove)          force_remove='true';                     shift;;
 # Commit opts
@@ -218,6 +244,11 @@ fi
 : "${archivate:=$ARCHIVATE}"
 : "${archive_rotate:=$ARCHIVE_ROTATE}"
 : "${archive_type:=$ARCHIVE_TYPE}"
+
+# Validate output format selection, default to "yaml" if not provided by arg
+output_format="$(echo ${output_format:-${OUTPUT_FORMAT:-yaml}} | tr '[A-Z]' '[a-z]')"
+[ "$output_format" != "yaml" ] && [ "$output_format" != "json" ] && \
+fail "--output-format must be yaml or json, not $output_format"
 
 # Check dependency
 require kubectl jq yq
@@ -452,15 +483,12 @@ if [[ "$mode" =~ ^(dump|all|dump-namespaces|ns)$ ]]; then
       if [ "$output_flat" == 'true' ]; then
         msg-start "$resource"
 
-        destination_resource_name="all${destination_suffix}.yaml"
+        destination_resource_name="all${destination_suffix}.${output_format}"
 
         # Save resources to file
         kubectl --namespace="${ns}" get \
           --output='json' "$resource" "${k_args[@]}" 2>/dev/null | \
-        jq --exit-status --compact-output --monochrome-output \
-          --raw-output --sort-keys 2>/dev/null \
-          "$namespaced_jq_filter" | \
-        yq eval --prettyPrint --no-colors --exit-status - \
+        output_formatting "${output_format}" "${namespaced_jq_filter}" \
           >"$destination_resource_dir/$destination_resource_name" 2>/dev/null && \
           msg-end "$resource" || msg-fail "$resource"
 
@@ -481,15 +509,12 @@ if [[ "$mode" =~ ^(dump|all|dump-namespaces|ns)$ ]]; then
 
           msg-start "$resource" "$name"
 
-          destination_resource_name="${name//:/-}${destination_suffix}.yaml"
+          destination_resource_name="${name//:/-}${destination_suffix}.${output_format}"
 
           # Save resource to file
           kubectl --namespace="${ns}" get \
             --output='json' "$resource" "$name" "${k_args[@]}" 2>/dev/null | \
-          jq --exit-status --compact-output --monochrome-output \
-            --raw-output --sort-keys 2>/dev/null \
-            "$namespaced_jq_filter" | \
-          yq eval --prettyPrint --no-colors --exit-status - \
+          output_formatting "${output_format}" "${namespaced_jq_filter}" \
             >"$destination_resource_dir/$destination_resource_name" 2>/dev/null && \
             msg-end "$resource" "$name" || msg-fail "$resource" "$name"
 
@@ -532,15 +557,12 @@ if [[ "$mode" =~ ^(dump|all|dump-cluster|cls)$ ]]; then
     if [ "$output_flat" == 'true' ]; then
       msg-start "$resource"
 
-      destination_resource_name="all${destination_suffix}.yaml"
+      destination_resource_name="all${destination_suffix}.${output_format}"
 
       # Save resource to file
       kubectl get \
         --output='json' "$resource" "${k_args[@]}" | \
-      jq --exit-status --compact-output --monochrome-output \
-        --raw-output --sort-keys 2>/dev/null \
-        "$cluster_jq_filter" | \
-      yq eval --prettyPrint --no-colors --exit-status - \
+      output_formatting "${output_format}" "${cluster_jq_filter}" \
         >"$destination_resource_dir/$destination_resource_name" 2>/dev/null && \
         msg-end "$resource" || msg-fail "$resource"
 
@@ -549,15 +571,12 @@ if [[ "$mode" =~ ^(dump|all|dump-cluster|cls)$ ]]; then
       while read -r name; do
         msg-start "$resource" "$name"
 
-        destination_resource_name="${name//:/-}${destination_suffix}.yaml"
+        destination_resource_name="${name//:/-}${destination_suffix}.${output_format}"
 
         # Save resource to file
         kubectl get \
           --output='json' "$resource" "$name" "${k_args[@]}" | \
-        jq --exit-status --compact-output --monochrome-output \
-          --raw-output --sort-keys 2>/dev/null \
-          "$cluster_jq_filter" | \
-        yq eval --prettyPrint --no-colors --exit-status - \
+        output_formatting "${output_format}" "${cluster_jq_filter}" \
           >"$destination_resource_dir/$destination_resource_name" 2>/dev/null && \
           msg-end "$resource" "$name" || msg-fail "$resource" "$name"
 
