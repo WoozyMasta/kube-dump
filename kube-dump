@@ -317,7 +317,27 @@ if [ -z "${namespaced_resources:-$NAMESPACED_RESOURCES}" ]; then
     tr '\n' ' '
   )"
 else
-  namespaced_resources=${namespaced_resources:-$NAMESPACED_RESOURCES}
+  nr_in=${namespaced_resources:-$NAMESPACED_RESOURCES}
+  nr_out=''
+  for nr in ${nr_in//,/ }; do
+    if [[ "$nr" == ALL ]] ; then
+      nr_out="${nr_out} $(kubectl api-resources --namespaced=true --output=name \
+      "${k_args[@]}" | tr '\n' ' ')"
+    elif [[ "$nr" == \!* ]] ; then
+      # filter out $nr from list
+      del=${nr#!}
+      nr_out2=''
+      for nr2 in ${nr_out} ; do
+        if [[ "$nr2" != $del ]] ; then
+          nr_out2="${nr_out2} ${nr2}"
+        fi
+      done
+      nr_out="$nr_out2"
+    else
+      nr_out="${nr_out} ${nr}"
+    fi
+  done
+  namespaced_resources="${nr_out}"
 fi
 
 # Set cluster resources

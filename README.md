@@ -134,13 +134,19 @@ All environment variables are described in the [`.env`](./.env) file,
 you can use them both for the container launch configuration and
 directly from the [`.env`](./.env) file, it is read automatically at startup.
 
-## Resources default's
+## Selecting resources
 
-All resources automatically discovered from the API if not pass as argument.
-
-* List of namespaces
-* List of default namespaced resources
-* List of default cluster wide resources
+Namespaces, namespaced resources and cluster wide resources
+may be specified as comma-separated list:
+```text
+  item1,item2,...
+```
+Also, specific namespaced resources may be excluded using '!' prefix,
+while special name "ALL" means all namespaced resources:
+```text
+  -r 'ALL,!events,!events.events.k8s.io'
+```
+If resources are not specified, they are automatically discovered from the API.
 
 ## Plans for further development 
 
