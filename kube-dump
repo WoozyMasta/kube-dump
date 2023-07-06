@@ -150,7 +150,7 @@ args=$(
   getopt \
     -l "namespaces:,namespaced-resources:,cluster-resources:" \
     -l "kube-config:,kube-context:,kube-cluster:,kube-insecure-tls" \
-    -l "help,silent,destination:,force-remove,detailed,output-by-type,flat" \
+    -l "help,silent,destination-dir:,force-remove,detailed,output-by-type,flat" \
     -l "git-commit,git-push,git-branch:,git-commit-user:,git-commit-email:" \
     -l "git-remote-name:,git-remote-url:" \
     -l "archivate,archive-rotate-days:,archive-type:" \
