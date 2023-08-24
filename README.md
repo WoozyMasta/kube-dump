@@ -75,6 +75,7 @@ Optional dependencies:
   * `xz` - a lossless data compression file format based on the LZMA algorithm
   * `gzip` - single-file/stream lossless data compression utility
   * `bzip2` - compression program that uses the Burrows–Wheeler algorithm
+* `aws-cli` - support for access to Amazon EKS clusters
 
 ## Commands and flags
 
