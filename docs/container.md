@@ -13,6 +13,14 @@ docker run --tty --interactive --rm \
 
 Kube-dump is set as entrypoint, you only need to pass command and flags to container.
 
+When connecting to AWS EKS, add your credentials as a volume mount for aws-cli to authenticate:
+```shell
+docker run --tty --interactive --rm \
+  --volume $HOME/.kube:/.kube --volume $HOME/.aws:/root/.aws --volume $HOME/dump:/dump \
+  woozymasta/kube-dump:latest \
+  dump-namespaces -n dev,prod -d /dump --kube-config /.kube/config
+```
+
 For more convenience, you can create an alias for calling kube-dump from a container:
 
 ```shell

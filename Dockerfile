@@ -6,10 +6,12 @@ LABEL maintainer="woozymasta@gmail.com"
 
 # hadolint ignore=DL3018
 RUN apk add --update --no-cache \
-    bash bind-tools jq yq openssh-client git tar xz gzip bzip2 curl coreutils grep && \
+    bash bind-tools jq yq openssh-client git tar xz gzip bzip2 curl coreutils grep python3 py3-pip && \
     curl -sLo /usr/bin/kubectl \
     "https://storage.googleapis.com/kubernetes-release/release/v$KUBECTL_VERSION/bin/linux/amd64/kubectl" && \
     chmod +x /usr/bin/kubectl
+
+RUN pip3 install awscli
 
 COPY ./kube-dump /kube-dump
 
