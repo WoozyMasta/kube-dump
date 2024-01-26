@@ -377,9 +377,15 @@ if [ "$detailed" == 'true' ]; then
   namespaced_jq_filter=''
 fi
 
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    REALPATH_BIN="/opt/homebrew/bin/grealpath"
+else
+    REALPATH_BIN="/bin/realpath"
+fi
+
 # Dump dir
 destination_dir="${destination_dir:-${DESTINATION_DIR:-$working_dir/data}}"
-destination_dir="$(realpath "$destination_dir" --canonicalize-missing)"
+destination_dir="$(${REALPATH_BIN} "$destination_dir" --canonicalize-missing)"
 if [ ! -d "$destination_dir" ]; then
   mkdir -p "$destination_dir"
   success 'Dump data directory' "$destination_dir" 'created'
