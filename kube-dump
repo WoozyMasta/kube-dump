@@ -362,6 +362,7 @@ namespaced_jq_filter=$(cat <<-END
     .metadata.selfLink,
     .metadata.uid,
     .spec.clusterIP,
+    .spec.clusterIPs,
     .spec.progressDeadlineSeconds,
     .spec.revisionHistoryLimit,
     .spec.template.metadata.annotations."kubectl.kubernetes.io/restartedAt",
