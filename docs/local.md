@@ -12,7 +12,7 @@ cd kube-dump
 
 ## Install dependecies
 
-Exemple for Ubuntu
+Example for Ubuntu
 
 ```shell
 sudo apt install bash git tar xz-utils gzip bzip2 curl
@@ -28,7 +28,23 @@ chmod +x ~/.local/bin/jq
 curl -sLo ~/.local/bin/yq \
   https://github.com/mikefarah/yq/releases/download/v4.5.0/yq_linux_amd64
 chmod +x ~/.local/bin/yq
+```
 
+Example for OSX
+
+```shell
+brew install coreutils
+export PATH="/Users/paladm/.homebrew/opt/coreutils/libexec/gnubin:$PATH"
+echo 'export PATH="/Users/paladm/.homebrew/opt/coreutils/libexec/gnubin:$PATH"' >> ~/.zshrc
+brew install gnu-getopt
+export PATH="$(brew --prefix)/opt/gnu-getopt/bin:$PATH"
+echo 'export PATH="$(brew --prefix)/opt/gnu-getopt/bin:$PATH"' >> ~/.zshrc
+# kubectl
+brew install kubernetes-cli
+# jq
+brew install jq
+# yq
+brew install yq
 ```
 
 ## Run it!

@@ -20,6 +20,7 @@
 # shellcheck disable=SC2015
 
 set -e
+set -x
 
 # Messages
 log () {
@@ -117,6 +118,11 @@ Git commit flags:
       --git-remote-name         Remote repo name, defualt is origin
       --git-remote-url          Remote repo URL
 
+Alert flags:
+      --cluster-name            Cluster name
+      --slack-url               Slack webhook URL
+      --slack-channel           Slack channel name
+
 Archivate flags:
   -a, --archivate               Create archive of data dir
       --archive-rotate-days     Rotate archives older than N days
@@ -154,6 +160,7 @@ args=$(
     -l "git-commit,git-push,git-branch:,git-commit-user:,git-commit-email:" \
     -l "git-remote-name:,git-remote-url:" \
     -l "archivate,archive-rotate-days:,archive-type:" \
+    -l "cluster-name:,slack-url:,slack-channel:" \
     -o "n:,r:,k:,h,s,d:,f,c,p,b:,a" -- "${@:2}"
 )
 eval set -- "$args"
@@ -185,6 +192,10 @@ while [ $# -ge 1 ]; do
        --git-commit-email)      git_commit_email="$2";            shift; shift;;
        --git-remote-name)       git_remote_name="$2";             shift; shift;;
        --git-remote-url)        git_remote_url="$2";              shift; shift;;
+# Slack opts
+        --cluster-name)          cluster_name="$2";                shift; shift;;
+        --slack-url)             slack_url="$2";                   shift; shift;;
+        --slack-channel)         slack_channel="$2";               shift; shift;;
 # Archivate opts
     -a|--archivate)             archivate='true';                        shift;;
        --archive-rotate-days)   archive_rotate="$2";              shift; shift;;
@@ -218,6 +229,9 @@ fi
 : "${archivate:=$ARCHIVATE}"
 : "${archive_rotate:=$ARCHIVE_ROTATE}"
 : "${archive_type:=$ARCHIVE_TYPE}"
+: "${cluster_name:=$CLUSTER_NAME}"
+: "${slack_url:=$SLACK_URL}"
+: "${slack_channel:=$SLACK_CHANNEL}"
 
 # Check dependency
 require kubectl jq yq
@@ -378,8 +392,10 @@ if [ "$detailed" == 'true' ]; then
 fi
 
 # Dump dir
+echo $destination_dir
 destination_dir="${destination_dir:-${DESTINATION_DIR:-$working_dir/data}}"
 destination_dir="$(realpath "$destination_dir" --canonicalize-missing)"
+echo $destination_dir
 if [ ! -d "$destination_dir" ]; then
   mkdir -p "$destination_dir"
   success 'Dump data directory' "$destination_dir" 'created'
@@ -661,10 +677,61 @@ if [ "$archivate" == 'true' ]; then
   fi
 fi
 
+# Slack alert
+if [ ! -n "$cluster_name" ]; then
+   cluster_name="default"
+fi
+
+function slack_message() {
+  local channel=$1
+  local state=$2
+  local cluster=$3
+  local slack_url=$4
+
+  case "$state" in
+    fail)
+      color="#ff0000"
+      ;;
+    success)
+      color="#00ff00"
+      ;;
+    *)
+      color="#0000ff"
+      ;;
+  esac
+
+  cat > /tmp/slack-msg-$$.json <<EOF
+{
+  "channel": "$channel",
+  "username": "kube-dump",
+  "icon_url": "https://raw.githubusercontent.com/devopstales/kube-dump/refs/heads/master/extras/logo.png",
+  "attachments": [
+    {
+      "color": "$color",
+      "text": "kube-dump backup on $cluster is *$state*"
+    }
+  ]
+}
+EOF
+
+curl -4 -X POST -H 'Content-Type: application/json' -d @/tmp/slack-msg-$$.json $slack_url
+}
+
+
 # Done
 if [ "$score" -ge 0 ]; then
   success 'Done!' "$score" 'task completed'
+  if [ -n "$slack_url" ]; then
+    if [ -n "$slack_channel" ]; then
+    slack_message "$slack_channel" 'success' "$cluster_name" "$slack_url"
+    fi
+  fi
   exit 0
 else
   fail 'No task has been completed'
+  if [ -n "$slack_url" ]; then
+    if [ -n "$slack_channel" ]; then
+    slack_message "$slack_channel" 'fail' "$cluster_name" "$slack_url"
+    fi
+  fi
 fi
