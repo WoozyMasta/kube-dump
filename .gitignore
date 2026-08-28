@@ -4,3 +4,7 @@
 *.tar
 data/
 .ssh/
+
+# Local backup files
+*.bkp?
+kube-dump.bkp*

@@ -21,23 +21,40 @@
 
 set -e
 
+# Retries
+retry() {
+    local -r -i max_attempts="$1"; shift
+    local -i attempt_num=1
+    until "$@"
+    do
+        if ((attempt_num==max_attempts))
+        then
+            echo "Attempt $attempt_num failed and there are no more attempts left!"
+            return 1
+        else
+            echo "Attempt $attempt_num failed! Trying again in $attempt_num seconds..."
+            sleep $((attempt_num++))
+        fi
+    done
+}
+
 # Messages
 log () {
   printf '%s [%s] %s\n' "$(date '+%Y/%m/%d %H:%M:%S')" "$1" "${@:2}"
 }
 msg-start () {
   [ "$silent" == 'true' ] && return; if [ -t 1 ]; then
-    printf '\e[1;33m%-15s\e[m%-30s%s\n' 'Processing' "$1" "${@:2}"
+    printf '\e[1;33m%-15s\e[m%-30s\e[m%-30s%s\n' 'Processing' "$1" "${@:2}" "${@:3}"
   else log INFO "Processing dump $*"; fi
 }
 msg-end () {
   [ "$silent" == 'true' ] && return; if [ -t 1 ]; then
-    printf '\e[1A\e[1;32m%-15s\e[m%-30s%s\n' 'Success' "$1" "${@:2}"
+    printf '\e[1A\e[1;32m%-15s\e[m%-30s\e[m%-30s%s\n' 'Success' "$1" "${@:2}" "${@:3}"
   else log INFO "Successfully dumped $*"; fi
 }
 msg-fail () {
   [ "$silent" == 'true' ] && return; if [ -t 1 ]; then
-    printf '\e[1A\e[1;31m%-15s\e[m%-30s%s\n' 'Fail' "$1" "${@:2}"
+    printf '\e[1A\e[1;31m%-15s\e[m%-30s\e[m%-30s%s\n' 'Fail' "$1" "${@:2}" "${@:3}"
   else log WARNING "Failed dump $*"; fi
 }
 success () {
@@ -48,8 +65,8 @@ success () {
 }
 heading () {
   [ "$silent" == 'true' ] && return; if [ -t 1 ]; then
-  printf '%s \e[1;34m%s\e[m %s\n%-15s%-30s%s\n' \
-         "$1" "$2" 'started' 'STATE' 'RESOURCE' 'NAME'
+  printf '%s \e[1;34m%-15s\e[m%-30s\e[m%-30s%s\n' \
+         "$1" "$2" 'started' 'STATE' 'RESOURCE' 'NAMESPACE' 'NAME'
   else log INFO "$*"; fi
 }
 warn () {
@@ -333,45 +350,69 @@ fi
 # default jq filter removes detailed fiends from cluster resources
 cluster_jq_filter=$(cat <<-END
   del(
-    .metadata.annotations."kubectl.kubernetes.io/last-applied-configuration",
     .metadata.annotations."control-plane.alpha.kubernetes.io/leader",
-    .metadata.uid,
-    .metadata.selfLink,
-    .metadata.resourceVersion,
+    .metadata.annotations."kubectl.kubernetes.io/last-applied-configuration",
+    .metadata.annotations."management.cattle.io/pod-limits",
+    .metadata.annotations."management.cattle.io/pod-requests",
     .metadata.creationTimestamp,
-    .metadata.generation
+    .metadata.generation,
+    .metadata.labels,
+    .metadata.resourceVersion,
+    .metadata.selfLink,
+    .metadata.uid,
+    .status,
+    .timestamp,
+    .usage.cpu,
+    .usage.memory,
+    .window
   )
 END
 )
+#    .status[],
 # default jq filter removes detailed fiends from namespaced resources
 namespaced_jq_filter=$(cat <<-END
   del(
+    .binaryData.content,
+    .data.timestamp,
     .metadata.annotations."autoscaling.alpha.kubernetes.io/conditions",
     .metadata.annotations."autoscaling.alpha.kubernetes.io/current-metrics",
+    .metadata.annotations."catalog.cattle.io/size",
     .metadata.annotations."control-plane.alpha.kubernetes.io/leader",
     .metadata.annotations."deployment.kubernetes.io/revision",
+    .metadata.annotations."endpoints.kubernetes.io/last-change-trigger-time",
     .metadata.annotations."kubectl.kubernetes.io/last-applied-configuration",
     .metadata.annotations."kubernetes.io/service-account.uid",
+    .metadata.annotations."objectset.rio.cattle.io/applied",
+    .metadata.annotations."optime",
+    .metadata.annotations."renewTime",
+    .metadata.annotations."status",
     .metadata.annotations."pv.kubernetes.io/bind-completed",
     .metadata.annotations."pv.kubernetes.io/bound-by-controller",
-    .metadata.finalizers,
-    .metadata.managedFields,
     .metadata.creationTimestamp,
     .metadata.generation,
+    .metadata.finalizers,
+    .metadata.managedFields,
     .metadata.resourceVersion,
     .metadata.selfLink,
     .metadata.uid,
     .spec.clusterIP,
+    .spec.clusterIPs,
     .spec.progressDeadlineSeconds,
     .spec.revisionHistoryLimit,
     .spec.template.metadata.annotations."kubectl.kubernetes.io/restartedAt",
     .spec.template.metadata.creationTimestamp,
     .spec.volumeName,
     .spec.volumeMode,
-    .status
+    .status,
+    .timestamp,
+    .renewTime,
+    .window
   )
 END
 )
+#.items[].spec.acquireTime,
+#.containers[].usage.cpu,
+#.containers[].usage.memory,
 # Optionally remove jq del
 if [ "$detailed" == 'true' ]; then
   namespaced_jq_filter=''
@@ -386,25 +427,18 @@ if [ ! -d "$destination_dir" ]; then
 elif [ "${force_remove:-$FORCE_REMOVE}" == 'true' ]; then
   warn "Destination $destination_dir directory will be removed"
   sleep 3
-  find "$destination_dir" -mindepth 1 -maxdepth 1 -type d ! -name '.git' \
-    -exec rm -fr "{}" \;
+  #find "$destination_dir" -mindepth 1 -maxdepth 1 -type d ! -name '.git' \
+  #  -exec rm -fr "{}" \;
+  rm -rf $destination_dir
 fi
 
-# Git try to clone
-if [ "$git_push" == 'true' ] && [ ! -d "$destination_dir/.git/" ]; then
-
+if [ "$git_push" == 'true' ]; then
   if ! grep --quiet --extended-regexp 'https?:\/\/' <<< "$git_remote_url"; then
-
-    _remote_url=$(sed -r 's|.*@([A-Za-z0-9\.-]+):.*|\1|' <<< "$git_remote_url")
-    ! grep --quiet "^$_remote_url " ~/.ssh/known_hosts >/dev/null 2>&1 && \
-      ssh-keyscan "$_remote_url" >> ~/.ssh/known_hosts 2>/dev/null
-
-    git clone --branch "$git_branch" --single-branch --depth 1 \
-      --quiet "$_remote_url" "$destination_dir" >/dev/null 2>&1 && \
-      success 'The remote repository is cloned at' "$destination_dir" || \
-      warn 'Unable to clone remote repository at' "$destination_dir"
-
-  else
+      _remote_url=$(sed -r 's|.*@([A-Za-z0-9\.-]+)/.*|\1|' <<< "$git_remote_url")
+      ! grep --quiet "^$_remote_url " ~/.ssh/known_hosts >/dev/null 2>&1 && \
+        ssh-keyscan "$_remote_url" >> ~/.ssh/known_hosts 
+  fi
+  if [ ! -d "$destination_dir/.git/" ]; then
     git clone --branch "$git_branch" --single-branch --depth 1 \
       --quiet "$git_remote_url" "$destination_dir" >/dev/null 2>&1 && \
       success 'The remote repository is cloned at' "$destination_dir" || \
@@ -418,91 +452,170 @@ score=0
 # Work with namespaced resources
 if [[ "$mode" =~ ^(dump|all|dump-namespaces|ns)$ ]]; then
 
-  for ns in ${namespaces//,/ }; do
-
-    # Check namespace exist
-    if ! kubectl get ns "$ns" "${k_args[@]}" >/dev/null 2>&1; then
-      warn "Namespace \"$ns\" not found"
-      continue
-    fi
-
-    # Create namespace dir
-    destination_namespace_dir="$destination_dir/$ns"
-    [ -d "$destination_namespace_dir" ] || mkdir -p "$destination_namespace_dir"
-    heading 'Dump namespace' "$ns"
-
+#  for ns in ${namespaces//,/ }; do
+#
+#    # Check namespace exist
+#    if ! kubectl get ns "$ns" "${k_args[@]}" >/dev/null 2>&1; then
+#      warn "Namespace \"$ns\" not found"
+#      continue
+#    fi
+#
+#    # Create namespace dir
+#    destination_namespace_dir="$destination_dir/$ns"
+#    [ -d "$destination_namespace_dir" ] || mkdir -p "$destination_namespace_dir"
+#    heading 'Dump namespace' "$ns"
+#
     # Iterate over resources
     for resource in ${namespaced_resources//,/ }; do
-
-      # By default, output all resources in the same namespace dir
-      destination_resource_dir="$destination_namespace_dir"
-
-      # Optionally create resource dir
-      if [ "$output_by_type" == 'true' ]; then
-        destination_resource_dir="$destination_resource_dir/$resource"
-        [ -d "$destination_resource_dir" ] || mkdir -p "$destination_resource_dir"
+      if [ "$resource" == 'pods.metrics.k8s.io' ]; then
+           continue
       fi
-
-      # Destination file name suffix, eg "_pod" or empty
-      destination_suffix="_$resource"
-      if [ "$output_by_type" == 'true' ]; then
-        destination_suffix="" # resource suffix was moved to dir
+      if [ "$resource" == 'leases.coordination.k8s.io' ]; then
+           continue
       fi
+      if [ "$resource" == 'events.events.k8s.io' ]; then
+           continue
+      fi
+      if [ "$resource" == 'events' ]; then
+           continue
+      fi
+      heading 'Dump resources' "$resource"
+
+#      # By default, output all resources in the same namespace dir
+#      destination_resource_dir="$destination_namespace_dir"
+#
+#      # Optionally create resource dir
+#      if [ "$output_by_type" == 'true' ]; then
+#        destination_resource_dir="$destination_resource_dir/$resource"
+#        [ -d "$destination_resource_dir" ] || mkdir -p "$destination_resource_dir"
+#      fi
+#
+#      # Destination file name suffix, eg "_pod" or empty
+#      destination_suffix="_$resource"
+#      if [ "$output_by_type" == 'true' ]; then
+#        destination_suffix="" # resource suffix was moved to dir
+#      fi
 
       if [ "$output_flat" == 'true' ]; then
         msg-start "$resource"
 
-        destination_resource_name="all${destination_suffix}.yaml"
-
-        # Save resources to file
-        kubectl --namespace="${ns}" get \
-          --output='json' "$resource" "${k_args[@]}" 2>/dev/null | \
-        jq --exit-status --compact-output --monochrome-output \
-          --raw-output --sort-keys 2>/dev/null \
-          "$namespaced_jq_filter" | \
-        yq eval --prettyPrint --no-colors --exit-status - \
-          >"$destination_resource_dir/$destination_resource_name" 2>/dev/null && \
-          msg-end "$resource" || msg-fail "$resource"
-
-      else
-        # Iterate over only accessible resources
-        while read -r name; do
-          [ -z "$name" ] && continue
-
-          # Skip service-account-token secrets
-          if [ "$resource" == 'secret' ]; then
-            type=$(
-              kubectl get --namespace="${ns}" --output=jsonpath="{.type}" \
-                secret "$name" "${k_args[@]}"
-              )
-            [ "$type" == 'kubernetes.io/service-account-token' ] && continue
-            unset type
+        for ns in ${namespaces//,/ }; do
+      
+          # Check namespace exist
+          if ! kubectl get ns "$ns" "${k_args[@]}" >/dev/null 2>&1; then
+            warn "Namespace \"$ns\" not found"
+            continue
           fi
-
-          msg-start "$resource" "$name"
-
-          destination_resource_name="${name//:/-}${destination_suffix}.yaml"
-
-          # Save resource to file
+      
+          # Create namespace dir
+          destination_namespace_dir="$destination_dir/$ns"
+          [ -d "$destination_namespace_dir" ] || mkdir -p "$destination_namespace_dir"
+          heading 'Dump namespace' "$ns"
+      
+          # By default, output all resources in the same namespace dir
+          destination_resource_dir="$destination_namespace_dir"
+      
+          # Optionally create resource dir
+          if [ "$output_by_type" == 'true' ]; then
+            destination_resource_dir="$destination_resource_dir/$resource"
+            [ -d "$destination_resource_dir" ] || mkdir -p "$destination_resource_dir"
+          fi
+      
+          # Destination file name suffix, eg "_pod" or empty
+          destination_suffix="_$resource"
+          if [ "$output_by_type" == 'true' ]; then
+            destination_suffix="" # resource suffix was moved to dir
+          fi
+  
+          destination_resource_name="all${destination_suffix}.yaml"
+  
+          # Save resources to file
           kubectl --namespace="${ns}" get \
-            --output='json' "$resource" "$name" "${k_args[@]}" 2>/dev/null | \
+            --output='json' "$resource" "${k_args[@]}"  | \
           jq --exit-status --compact-output --monochrome-output \
-            --raw-output --sort-keys 2>/dev/null \
+            --raw-output --sort-keys  \
             "$namespaced_jq_filter" | \
           yq eval --prettyPrint --no-colors --exit-status - \
-            >"$destination_resource_dir/$destination_resource_name" 2>/dev/null && \
-            msg-end "$resource" "$name" || msg-fail "$resource" "$name"
+            >"$destination_resource_dir/$destination_resource_name"  && \
+            msg-end "$resource" || msg-fail "$resource"
+  
+          success 'Namespace' "$ns" 'resources dump completed' ''
+        done
+      
+      else      
+        # Iterate over only accessible resources
+        while read -r resource_line; do
+          [ -z "$resource_line" ] && continue
+
+
+          # if [ "$resource" == '	pods.metrics.k8s.io' ]; then
+          #    continue
+          # fi
+          
+          # Skip service-account-token secrets 
+          #if [ "$resource" == 'secret' ]; then
+          #  type=$(
+          #    kubectl get --namespace="${ns}" --output=jsonpath="{.type}" \
+          #      secret "$name" "${k_args[@]}"
+          #    )
+          #  [ "$type" == 'kubernetes.io/service-account-token' ] && continue
+          #  unset type
+          #fi
+          name=$(echo $resource_line | cut -d " " -f 1)
+          ns=$(echo $resource_line | cut -d " " -f 2)
+
+          #for ns in ${namespaces//,/ }; do
+        
+          #  # Check namespace exist
+          #  if ! kubectl get ns "$ns" "${k_args[@]}" >/dev/null 2>&1; then
+          #    warn "Namespace \"$ns\" not found"
+          #    continue
+          #  fi
+        
+            # Create namespace dir
+            destination_namespace_dir="$destination_dir/$ns"
+            [ -d "$destination_namespace_dir" ] || mkdir -p "$destination_namespace_dir"
+            #heading 'Dump namespace' "$ns"
+        
+            # By default, output all resources in the same namespace dir
+            destination_resource_dir="$destination_namespace_dir"
+            destination_suffix="_$resource"
+
+            # Optionally create resource dir
+            if [ "$output_by_type" == 'true' ]; then
+              destination_resource_dir="$destination_resource_dir/$resource"
+              [ -d "$destination_resource_dir" ] || mkdir -p "$destination_resource_dir"
+              destination_suffix="" # resource suffix was moved to dir
+            fi
+ 
+             msg-start "$ns" "$name"
+
+            destination_resource_name="${name//:/-}${destination_suffix}.yaml"
+    
+            # Save resource to file
+            kubectl --namespace="${ns}" get \
+              --output='json' "$resource" "$name" "${k_args[@]}"  | \
+            jq --exit-status --compact-output --monochrome-output \
+              --raw-output --sort-keys  \
+              "$namespaced_jq_filter" | \
+            yq eval --prettyPrint --no-colors --exit-status - \
+              >"$destination_resource_dir/$destination_resource_name"  && \
+              msg-end "$ns" "$name" || msg-fail "$ns" "$name"
+
+          #  success 'Namespace' "$ns" 'resources dump completed' ''
+          #done
 
         done < <(
-          kubectl --namespace="${ns}" get "$resource" \
-            --output='custom-columns=NAME:.metadata.name' \
-            --no-headers "${k_args[@]}" 2>/dev/null
+          kubectl  get "$resource" \
+            --output='custom-columns=NAME:.metadata.name,NAMESPACE:.metadata.namespace' \
+            --no-headers "${k_args[@]}" -A 
           )
       fi
       # Finished with resource
+
     done
-    success 'Namespace' "$ns" 'resources dump completed' ''
-  done
+#    success 'Namespace' "$ns" 'resources dump completed' ''
+#  done
 fi
 
 # Work with cluster resources
@@ -511,16 +624,22 @@ if [[ "$mode" =~ ^(dump|all|dump-cluster|cls)$ ]]; then
   heading 'Dump cluster data' "$context"
 
   # Create cluster directory
-  destination_resource_dir="$destination_dir/cluster"
-  [ -d "$destination_resource_dir" ] || mkdir -p "$destination_resource_dir"
+  cluster_destination_resource_dir="$destination_dir/cluster"
+  [ -d "$cluster_destination_resource_dir" ] || mkdir -p "$cluster_destination_resource_dir"
 
   # Iterate over resources
   for resource in ${cluster_resources//,/ }; do
 
+          if [ "$resource" == '	nodes.metrics.k8s.io' ]; then
+             continue
+          fi
+
     # Optionally create resource dir
     if [ "$output_by_type" == 'true' ]; then
-      destination_resource_dir="$destination_resource_dir/$resource"
+      destination_resource_dir="$cluster_destination_resource_dir/$resource"
       [ -d "$destination_resource_dir" ] || mkdir -p "$destination_resource_dir"
+    else
+      destination_resource_dir="$cluster_destination_resource_dir"
     fi
 
     # Destination file name suffix, eg "_pod" or empty
@@ -538,16 +657,16 @@ if [[ "$mode" =~ ^(dump|all|dump-cluster|cls)$ ]]; then
       kubectl get \
         --output='json' "$resource" "${k_args[@]}" | \
       jq --exit-status --compact-output --monochrome-output \
-        --raw-output --sort-keys 2>/dev/null \
+        --raw-output --sort-keys  \
         "$cluster_jq_filter" | \
       yq eval --prettyPrint --no-colors --exit-status - \
-        >"$destination_resource_dir/$destination_resource_name" 2>/dev/null && \
+        >"$destination_resource_dir/$destination_resource_name"  && \
         msg-end "$resource" || msg-fail "$resource"
 
     else
       # Iterate over only accessible resources
       while read -r name; do
-        msg-start "$resource" "$name"
+        msg-start "$resource" "$ns" "$name"
 
         destination_resource_name="${name//:/-}${destination_suffix}.yaml"
 
@@ -555,16 +674,16 @@ if [[ "$mode" =~ ^(dump|all|dump-cluster|cls)$ ]]; then
         kubectl get \
           --output='json' "$resource" "$name" "${k_args[@]}" | \
         jq --exit-status --compact-output --monochrome-output \
-          --raw-output --sort-keys 2>/dev/null \
+          --raw-output --sort-keys  \
           "$cluster_jq_filter" | \
         yq eval --prettyPrint --no-colors --exit-status - \
-          >"$destination_resource_dir/$destination_resource_name" 2>/dev/null && \
-          msg-end "$resource" "$name" || msg-fail "$resource" "$name"
+          >"$destination_resource_dir/$destination_resource_name"  && \
+          msg-end "$resource" "$ns" "$name" || msg-fail "$resource" "$ns" "$name"
 
       done < <(
         kubectl get "$resource" \
           --output='custom-columns=NAME:.metadata.name' \
-          --no-headers "${k_args[@]}" 2>/dev/null
+          --no-headers "${k_args[@]}" 
         )
     fi
     # Finished with resource
@@ -626,7 +745,9 @@ if [ "$git_commit" == 'true' ] || [ "$git_push" == 'true' ]; then
       git remote add "${git_remote_name:-origin}" \
         "$git_remote_url" > /dev/null 2>&1 || true
     fi
-    git pull --ff-only "$git_remote_url" "$git_branch" || true
+    git config pull.rebase false
+    git config pull.ff false
+    git pull "$git_remote_url"  "$git_branch" --allow-unrelated-histories  || true
     git push --quiet --set-upstream "${git_remote_name:-origin}" "$git_branch"
   fi
 fi
