@@ -1,0 +1,313 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/woozymasta/kube-dump/HEAD/pkg/profile/schema/profile.schema.json
+
+# APIVersion identifies the profile contract version.
+# Example: kube-dump/v2
+# Allowed values: kube-dump/v2
+apiVersion: kube-dump/v2
+# Kind identifies the document as a kube-dump profile.
+# Example: Profile
+# Allowed values: Profile
+kind: Profile
+# Metadata gives the profile its catalog name and user-facing description.
+metadata:
+  # Name is the lowercase alias used with --profile and profile commands.
+  # Example: clean-export
+  name: clean-export
+  # Description is a concise user-facing explanation of the profile's purpose.
+  # Example: Clean export suitable for sharing or redeployment
+  description: Clean export suitable for sharing or redeployment
+# Resources defines which Kubernetes API objects are collected
+# and how they are normalized before serialization.
+resources:
+  # OmitEmpty removes null values and empty maps or lists from resource objects before serialization.
+  # Zero values, false values, and empty strings are kept.
+  omitEmpty: false
+  # Selection defines the initial set of API objects admitted by the profile.
+  # When omitted or empty, all discovered resources are included.
+  selection:
+    # Resources is an ordered list of `group/version/resource[:name]` expressions.
+    # A leading `!` excludes matching resources or a specific object name.
+    # Quote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.
+    resources:
+      - core/v1/configmaps
+      - '!core/v1/configmaps:kube-root-ca.crt'
+    # Namespaces limits objects to namespace names matching shell-style globs.
+    # A leading `!` excludes matching namespaces; an empty list matches every namespace.
+    # Quote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.
+    namespaces:
+      - production
+      - '!kube-*'
+    # Names limits objects to names matching shell-style globs.
+    # A leading `!` excludes matching names; an empty list matches every name.
+    # Quote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.
+    names:
+      - api-*
+      - '!api-temporary-*'
+    # LabelSelector filters objects by Kubernetes label-selector semantics.
+    labelSelector:
+      # MatchLabels requires exact key/value pairs.
+      matchLabels: {}
+      # MatchExpressions supports membership and key-existence operators.
+      matchExpressions:
+        - # Key is the label or annotation key to test.
+          # Example: environment
+          key: environment
+          # Operator determines how Key and Values are evaluated.
+          # Example: In
+          # Allowed values: In, NotIn, Exists, DoesNotExist
+          operator: In
+          # Values contains operands for In and NotIn operators.
+          values:
+            - prod
+    # AnnotationSelector filters objects by the same operators
+    # and conjunction semantics as LabelSelector, applied to annotations.
+    annotationSelector:
+      # MatchLabels requires exact annotation key/value pairs.
+      matchLabels: {}
+      # MatchExpressions supports membership and key-existence operators.
+      matchExpressions:
+        - # Key is the label or annotation key to test.
+          # Example: environment
+          key: environment
+          # Operator determines how Key and Values are evaluated.
+          # Example: In
+          # Allowed values: In, NotIn, Exists, DoesNotExist
+          operator: In
+          # Values contains operands for In and NotIn operators.
+          values:
+            - prod
+  # Rules are evaluated in declaration order after selection.
+  # When omitted or empty, no fields are removed or encrypted.
+  rules:
+    - # Name labels the rule in validation errors and diagnostics.
+      # Example: remove-runtime-metadata
+      name: remove-runtime-metadata
+      # Match selects the objects affected by this rule; all populated match fields must pass.
+      match:
+        # Resources restricts the rule to `group/version/resource[:name]` expressions.
+        resources:
+          - core/v1/secrets
+          - apps/v1/deployments:api
+        # Namespaces limits objects to namespace names matching shell-style globs.
+        # A leading `!` excludes matching namespaces; an empty list matches every namespace.
+        # Quote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.
+        namespaces:
+          - production
+          - '!kube-*'
+        # Names limits objects to names matching shell-style globs.
+        # A leading `!` excludes matching names; an empty list matches every name.
+        # Quote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.
+        names:
+          - api-*
+          - '!api-temporary-*'
+        # LabelSelector filters objects by Kubernetes label-selector semantics.
+        labelSelector:
+          # MatchLabels requires exact key/value pairs.
+          matchLabels: {}
+          # MatchExpressions supports membership and key-existence operators.
+          matchExpressions:
+            - # Key is the label or annotation key to test.
+              # Example: environment
+              key: environment
+              # Operator determines how Key and Values are evaluated.
+              # Example: In
+              # Allowed values: In, NotIn, Exists, DoesNotExist
+              operator: In
+              # Values contains operands for In and NotIn operators.
+              values:
+                - prod
+        # AnnotationSelector filters objects by the same operators
+        # and conjunction semantics as LabelSelector, applied to annotations.
+        annotationSelector:
+          # MatchLabels requires exact annotation key/value pairs.
+          matchLabels: {}
+          # MatchExpressions supports membership and key-existence operators.
+          matchExpressions:
+            - # Key is the label or annotation key to test.
+              # Example: environment
+              key: environment
+              # Operator determines how Key and Values are evaluated.
+              # Example: In
+              # Allowed values: In, NotIn, Exists, DoesNotExist
+              operator: In
+              # Values contains operands for In and NotIn operators.
+              values:
+                - prod
+      # Remove lists dot/bracket field paths deleted before serialization.
+      remove:
+        - .metadata.creationTimestamp
+      # Encrypt lists dot/bracket field paths protected when runtime encryption is configured.
+      # Without recipients or an AES-SIV keyring, the selected fields remain plaintext.
+      encrypt:
+        - .data.*
+# PVC defines optional namespace, metadata, and name filters for PVC data.
+# An empty selection includes every PVC allowed by runtime flags.
+pvc:
+  # Selection limits PVC data by namespace, name, and Kubernetes metadata.
+  selection:
+    # Namespaces limits objects to namespace names matching shell-style globs.
+    # A leading `!` excludes matching namespaces; an empty list matches every namespace.
+    # Quote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.
+    namespaces:
+      - production
+      - '!kube-*'
+    # Names limits objects to names matching shell-style globs.
+    # A leading `!` excludes matching names; an empty list matches every name.
+    # Quote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.
+    names:
+      - api-*
+      - '!api-temporary-*'
+    # LabelSelector filters objects by Kubernetes label-selector semantics.
+    labelSelector:
+      # MatchLabels requires exact key/value pairs.
+      matchLabels: {}
+      # MatchExpressions supports membership and key-existence operators.
+      matchExpressions:
+        - # Key is the label or annotation key to test.
+          # Example: environment
+          key: environment
+          # Operator determines how Key and Values are evaluated.
+          # Example: In
+          # Allowed values: In, NotIn, Exists, DoesNotExist
+          operator: In
+          # Values contains operands for In and NotIn operators.
+          values:
+            - prod
+    # AnnotationSelector filters objects by the same operators
+    # and conjunction semantics as LabelSelector, applied to annotations.
+    annotationSelector:
+      # MatchLabels requires exact annotation key/value pairs.
+      matchLabels: {}
+      # MatchExpressions supports membership and key-existence operators.
+      matchExpressions:
+        - # Key is the label or annotation key to test.
+          # Example: environment
+          key: environment
+          # Operator determines how Key and Values are evaluated.
+          # Example: In
+          # Allowed values: In, NotIn, Exists, DoesNotExist
+          operator: In
+          # Values contains operands for In and NotIn operators.
+          values:
+            - prod
+# Images defines optional Pod metadata, container, and image-reference filters.
+# An empty selection includes every image allowed by runtime flags.
+images:
+  # Selection limits image discovery by Pod namespace, metadata, container type, and image reference.
+  selection:
+    # Namespaces limits objects to namespace names matching shell-style globs.
+    # A leading `!` excludes matching namespaces; an empty list matches every namespace.
+    # Quote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.
+    namespaces:
+      - production
+      - '!kube-*'
+    # Names limits objects to names matching shell-style globs.
+    # A leading `!` excludes matching names; an empty list matches every name.
+    # Quote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.
+    names:
+      - api-*
+      - '!api-temporary-*'
+    # Owners selects objects in the ownerReference chain of a selected Pod.
+    # A Pod is included only when at least one owner matches all configured owner filters.
+    # Use Resources to distinguish Deployments, DaemonSets, StatefulSets, Jobs, and other Kubernetes owner objects.
+    owners:
+      # Resources limits matching owners to Kubernetes resource identities such as `apps/v1/deployments` or `apps/v1/daemonsets`.
+      # An empty list accepts any owner in the Pod's ownerReference chain.
+      resources:
+        - apps/v1/deployments
+      # Namespaces limits objects to namespace names matching shell-style globs.
+      # A leading `!` excludes matching namespaces; an empty list matches every namespace.
+      # Quote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.
+      namespaces:
+        - production
+        - '!kube-*'
+      # Names limits objects to names matching shell-style globs.
+      # A leading `!` excludes matching names; an empty list matches every name.
+      # Quote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.
+      names:
+        - api-*
+        - '!api-temporary-*'
+      # LabelSelector filters objects by Kubernetes label-selector semantics.
+      labelSelector:
+        # MatchLabels requires exact key/value pairs.
+        matchLabels: {}
+        # MatchExpressions supports membership and key-existence operators.
+        matchExpressions:
+          - # Key is the label or annotation key to test.
+            # Example: environment
+            key: environment
+            # Operator determines how Key and Values are evaluated.
+            # Example: In
+            # Allowed values: In, NotIn, Exists, DoesNotExist
+            operator: In
+            # Values contains operands for In and NotIn operators.
+            values:
+              - prod
+      # AnnotationSelector filters objects by the same operators
+      # and conjunction semantics as LabelSelector, applied to annotations.
+      annotationSelector:
+        # MatchLabels requires exact annotation key/value pairs.
+        matchLabels: {}
+        # MatchExpressions supports membership and key-existence operators.
+        matchExpressions:
+          - # Key is the label or annotation key to test.
+            # Example: environment
+            key: environment
+            # Operator determines how Key and Values are evaluated.
+            # Example: In
+            # Allowed values: In, NotIn, Exists, DoesNotExist
+            operator: In
+            # Values contains operands for In and NotIn operators.
+            values:
+              - prod
+    # ContainerTypes limits matches to regular containers, init containers, or both.
+    containerTypes:
+      - container
+      - initContainer
+    # LabelSelector filters objects by Kubernetes label-selector semantics.
+    labelSelector:
+      # MatchLabels requires exact key/value pairs.
+      matchLabels: {}
+      # MatchExpressions supports membership and key-existence operators.
+      matchExpressions:
+        - # Key is the label or annotation key to test.
+          # Example: environment
+          key: environment
+          # Operator determines how Key and Values are evaluated.
+          # Example: In
+          # Allowed values: In, NotIn, Exists, DoesNotExist
+          operator: In
+          # Values contains operands for In and NotIn operators.
+          values:
+            - prod
+    # AnnotationSelector filters objects by the same operators
+    # and conjunction semantics as LabelSelector, applied to annotations.
+    annotationSelector:
+      # MatchLabels requires exact annotation key/value pairs.
+      matchLabels: {}
+      # MatchExpressions supports membership and key-existence operators.
+      matchExpressions:
+        - # Key is the label or annotation key to test.
+          # Example: environment
+          key: environment
+          # Operator determines how Key and Values are evaluated.
+          # Example: In
+          # Allowed values: In, NotIn, Exists, DoesNotExist
+          operator: In
+          # Values contains operands for In and NotIn operators.
+          values:
+            - prod
+    # References selects images by registry, repository, and optional tag globs.
+    # Multiple entries are combined with OR semantics.
+    references:
+      - # Registry is the registry host glob, for example docker.io or ghcr.io.
+        # Example: docker.io
+        registry: docker.io
+        # Repository is the repository path glob without the registry or tag.
+        # Example: library/*
+        repository: library/*
+        # Tags accepts image tags matching at least one shell-style glob pattern.
+        # An empty list accepts tagged and digest-pinned references.
+        tags:
+          - MR-*
+          - '*-rc.*'

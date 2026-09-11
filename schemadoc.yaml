@@ -1,0 +1,28 @@
+---
+schema: pkg/profile/schema/profile.schema.json
+
+mod2schema:
+  module: .
+  package: github.com/woozymasta/kube-dump/v2/pkg/profile
+  type: Profile
+  key_namer: none
+
+schema2doc:
+  title: kube-dump profile format
+  description: |
+    A profile first selects the Kubernetes resources that may be captured and then applies ordered rules to matching objects.
+    Use shell-style globs and a leading `!` in namespace, name, and resource selections to express compact exclusions.
+    Use `NotIn` and `DoesNotExist` for negative label and annotation requirements.
+
+    Built-in profiles are suitable starting points; copy one to a global profile before editing it.
+    Runtime flags can narrow selection and configure encryption without changing the profile file.
+  template: table
+  mode: all
+  format: yaml
+  yaml:
+    disable_example_comments: true
+  output: docs/profile.md
+
+schema2yaml:
+  mode: all
+  output: docs/example.profile.yaml

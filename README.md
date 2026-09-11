@@ -1,168 +1,155 @@
-# Kube-dump <!-- omit in toc -->
+<!-- markdownlint-disable MD033 MD041 -->
+<div align="right">
+  <p>
+    <a href="./README.md">English</a> ·
+    <a href="./README.ru.md">Русский</a> ·
+    <a href="./README.zh.md">中文</a>
+  </p>
+</div>
+<div align="center">
+  <img src="./docs/assets/images/logo-wide.png" alt="kube-dump" width="600">
+  <p>
+    <a href="https://kube-dump.woozymasta.ru/en/">Documentation site</a> ·
+    <a href="./deploy/README.md">Run in Kubernetes</a> ·
+    <a href="./docs/README.md">Project documentation</a>
+  </p>
+</div>
+<!-- markdownlint-enable MD033 -->
 
-Backup a Kubernetes cluster as a yaml manifest.
+# kube-dump
 
-![Logo](https://raw.githubusercontent.com/WoozyMasta/kube-dump/master/extras/logo-wide.png)
+**kube-dump** is a utility for preserving the actual state
+of a Kubernetes environment when it needs to be captured.
 
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/WoozyMasta/kube-dump?style=flat-square)
-![GitHub branch checks state](https://img.shields.io/github/checks-status/WoozyMasta/kube-dump/master?style=flat-square)
-![GitHub](https://img.shields.io/github/license/WoozyMasta/kube-dump?style=flat-square)
-![GitHub last commit](https://img.shields.io/github/last-commit/WoozyMasta/kube-dump?style=flat-square)
-![Docker Pulls](https://img.shields.io/docker/pulls/woozymasta/kube-dump?style=flat-square)
-![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/woozymasta/kube-dump?style=flat-square)
-![Docker Image Size (latest semver)](https://img.shields.io/docker/image-size/woozymasta/kube-dump?sort=semver&style=flat-square)
+In a test namespace, developer sandbox, temporary staging environment,
+or demonstration environment, state is often changed manually.
+Someone updates a Deployment, creates a ConfigMap, tries a new operator,
+writes data to a PVC, or runs a temporary image.
+That state may be needed again later,
+even if the environment has already changed or been deleted.
 
-* [Description](#description)
-* [Quick Start Guides](#quick-start-guides)
-* [Container Images](#container-images)
-* [Dependencies](#dependencies)
-* [Commands and flags](#commands-and-flags)
-* [Environment variables](#environment-variables)
-* [Resources default's](#resources-defaults)
-* [Plans for further development](#plans-for-further-development)
+These environments do not always have GitOps,
+a separate backup system, or a strict lifecycle.
+That is fine, but important state can still be left without a portable copy.
 
-## Description
+kube-dump preserves this state in a readable format that can be stored locally,
+in Git, or in S3-compatible storage and used for recovery.
 
-With this utility you can save your cluster resources as nice yaml
-manifests without unnecessary metadata.
+## Installation
 
-Key features:
+Ready-to-use files for the latest stable release:
 
-* Saving only those resources to which you have read access;
-* Can work with a list of namespaces otherwise all available ones will be used;
-* Can save both namespaced and cluster wide resources;
-* You can run locally, in a container or in a cluster;
-* Can archive and rotate dump archives;
-* Can commit dumps to a git repository and send to a remote repository;
-* You can specify a list of resources to be dumped;
-* It is possible to configure via command line arguments as well as via
-  environment variables.
+OS / architecture | Linux         | macOS         | Windows
+----------------- | ------------- | ------------- | ---------------
+amd64             | [Linux amd64] | [macOS amd64] | [Windows amd64]
+arm64             | [Linux arm64] | [macOS arm64] | [Windows arm64]
 
-[![asciicast](https://raw.githubusercontent.com/WoozyMasta/kube-dump/master/extras/kube-dump.gif)](https://asciinema.org/a/3FfZlP011rF0gj443QnuWdNFE)
+All published versions are available on [GitHub Releases][ghr].
 
-## Quick Start Guides
+With Go 1.27 or newer, install the current version with:
 
-* [Run on a local machine](./docs/local.md)
-  (dependencies and a config for kubectl are required)
-* [Run in container](./docs/container.md)
-  (docker, podman, etc. required and a config for kubectl)
-* [Run in kubernetes as pod](./docs/pod.md)
-  (requires access to the kubernetes cluster and config for kubectl)
-* [Run in kubernetes as a cron job using a service account](./docs/cronjob.md)
-  (requires access to the kubernetes cluster and
-  the ability to create a role or cluster role)
-
-## Container Images
-
-* [`docker pull ghcr.io/woozymasta/kube-dump:1.1.1`](https://github.com/WoozyMasta/kube-dump/pkgs/container/kube-dump)
-* [`docker pull quay.io/woozymasta/kube-dump:1.1.1`](https://quay.io/repository/woozymasta/kube-dump)
-* [`docker pull docker.io/woozymasta/kube-dump:1.1.1`](https://hub.docker.com/r/woozymasta/kube-dump)
-
-## Dependencies
-
-Required dependencies:
-
-* [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/) -
-  Kubernetes command-line tool
-* [`jq`](https://github.com/stedolan/jq) - Command-line JSON processor
-* [`yq`](https://github.com/mikefarah/yq) - Command-line YAML processor
-
-Optional dependencies:
-
-* `curl` - Used to check kubernetes api livez probe when use serviceaccount
-* `git` - Used to store backups as a git repository
-* `tar` - Used to create backup archives with one of the compression libraries:
-  * `xz` - a lossless data compression file format based on the LZMA algorithm
-  * `gzip` - single-file/stream lossless data compression utility
-  * `bzip2` - compression program that uses the Burrows–Wheeler algorithm
-
-## Commands and flags
-
-```text
-./kube-dump [command] [[flags]]
-
-Available Commands:
-  all, dump                     Dump all kubernetes resources
-  ns,  dump-namespaces          Dump namespaced kubernetes resources
-  cls, dump-cluster             Dump cluster wide kubernetes resources
-
-The command can also be passed through the environment variable MODE.
-All flags presented below have a similar variable in uppercase, with underscores
-For example:
-  --destination-dir == DESTINATION_DIR 
-
-Flags:
-  -h, --help                  This help
-  -s, --silent                Execute silently, suppress all stdout messages
-  -d, --destination-dir       Path to dir for store dumps, default ./data
-  -f, --force-remove          Delete resources in data directory before launch
-      --detailed              Do not remove detailed state specific fields
-      --output-by-type        Organize output into directories by resource type
-      --flat                  Organize all resources of the same type in the
-                              same file
-
-Kubernetes flags:
-  -n, --namespaces            List of kubernetes namespaces
-  -r, --namespaced-resources  List of namespaced resources
-  -k, --cluster-resources     List of cluster resources
-      --kube-config           Path to kubeconfig file
-      --kube-context          The name of the kubeconfig context to use
-      --kube-cluster          The name of the kubeconfig cluster to use
-      --kube-insecure-tls     Skip check server's certificate for validity
-
-Git commit flags:
-  -c, --git-commit            Commit changes
-  -p, --git-push              Commit changes and push to origin
-  -b, --git-branch            Branch name
-      --git-commit-user       Commit author username
-      --git-commit-email      Commit author email
-      --git-remote-name       Remote repo name, defualt is origin
-      --git-remote-url        Remote repo URL
-
-Archivate flags:
-  -a, --archivate             Create archive of data dir
-      --archive-rotate-days   Rotate archives older than N days
-      --archive-type          Archive type xz, gz or bz2, default is tar
-
-Example of use:
-  $cmd dump-namespaces -n default,dev -d /mnt/dump -spa --archive-type gz
+```shell
+go install github.com/woozymasta/kube-dump/v2/cmd/kube-dump@v2.0.0-rc.1
 ```
 
-## Environment variables
+For running inside Kubernetes, use the ready-made
+[Kustomize components][kubernetes].
 
-All environment variables are described in the [`.env`](./.env) file,
-you can use them both for the container launch configuration and
-directly from the [`.env`](./.env) file, it is read automatically at startup.
+The container image is published to:
 
-## Resources default's
+```text
+ghcr.io/woozymasta/kube-dump:2.0.0-rc.1
+docker.io/woozymasta/kube-dump:2.0.0-rc.1
+```
 
-All resources automatically discovered from the API if not pass as argument.
+For CI, debugging, and scripting, use the image with a shell and additional
+utilities:
 
-* List of namespaces
-* List of default namespaced resources
-* List of default cluster wide resources
+```text
+ghcr.io/woozymasta/kube-dump:2.0.0-rc.1-debug
+docker.io/woozymasta/kube-dump:2.0.0-rc.1-debug
+```
 
-## Plans for further development 
+More installation options are described in the [documentation][docs].
 
-* Sending dumps to s3 bucket;
-* Sending notifications by email and webhook;
-* Git-crypt to encrypt secrets;
-* Bash autocomplete.
+## What it preserves
 
-<!--
-Title: Kube-dump
-Description: Backup a Kubernetes cluster as a yaml manifest.
-Author: WoozyMasta
-Keywords:
-  kubernetes save deployment yaml
-  kubectl get yaml file
-  kubectl get yaml from service
-  kubectl get deployment yaml
-  kubectl save yaml
-  kubectl generate yaml
-  kubernetes json to yaml
-  kubernetes export deployment yaml
-  kubernetes dump yaml
-  kubectl dump yaml
-  kubectl describe to yaml
--->
+kube-dump preserves three independent parts of Kubernetes state:
+
+* Kubernetes resources - YAML manifests for storing in Git, S3, or an archive;
+* PVC data - file archives that can be read from a CSI snapshot;
+* container images - a standard OCI Image Layout,
+  including temporary images and merge request builds.
+
+Each layer can be saved separately or together with the others.
+
+## How to use it
+
+Each data type has its own command. For example, save resources locally:
+
+```sh
+kube-dump resource save dir ./backup
+```
+
+Or send them to S3-compatible storage:
+
+```sh
+kube-dump resource save s3 --s3-uri s3://backup/my-cluster/
+```
+
+Save PVC data and container images with the `pvc` and `image` commands.
+
+Capture the state before maintenance or an experiment,
+before cleaning a temporary registry, or before deleting a test environment.
+
+## What it does not replace
+
+kube-dump does not replace Argo CD, Flux, Velero,
+database operators, or an application's own backup mechanisms.
+
+If an application can create a correct logical database backup,
+continue to use that mechanism.
+If infrastructure is fully declared in Git,
+Git remains the source of desired state.
+
+kube-dump captures what actually exists in the cluster
+at a given moment in a readable and portable form,
+so it can be used as a basis for recovery.
+
+## Profiles and data protection
+
+Profiles define how resources, PVCs, and images are selected and processed.
+For Kubernetes manifests, they also define cleanup rules and fields to encrypt.
+
+Built-in profiles:
+
+* [backup] - backs up configuration, access control,
+  and common operator objects while removing server-generated state;
+* [export] - creates clean,
+  portable manifests without runtime metadata and empty fields;
+* [raw] - saves all discovered objects without cleanup or filtering.
+
+Sensitive YAML values can be encrypted with age or deterministic AES-256-SIV.
+Resource and PVC archives can additionally be protected with age.
+
+## More information
+
+This README is not the complete documentation.
+Installation, commands, profiles, encryption, PVCs,
+and images are covered in the [documentation][docs].
+
+<!-- links -->
+
+[docs]: https://kube-dump.woozymasta.ru/en/
+[ghr]: https://github.com/WoozyMasta/kube-dump/releases
+[kubernetes]: ./deploy/README.md
+[backup]: ./internal/profile/builtin/backup.yaml
+[export]: ./internal/profile/builtin/export.yaml
+[raw]: ./internal/profile/builtin/raw.yaml
+
+[Linux amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.1/kube-dump-linux-amd64
+[Linux arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.1/kube-dump-linux-arm64
+[macOS amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.1/kube-dump-darwin-amd64
+[macOS arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.1/kube-dump-darwin-arm64
+[Windows amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.1/kube-dump-windows-amd64.exe
+[Windows arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.1/kube-dump-windows-arm64.exe

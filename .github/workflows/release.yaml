@@ -1,0 +1,290 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  classify_tag:
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      create_release: ${{ steps.classify.outputs.create_release }}
+      prerelease: ${{ steps.classify.outputs.prerelease }}
+    steps:
+      - name: Classify tag
+        id: classify
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          if [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            channel=stable
+          elif [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$ ]]; then
+            channel=rc
+          else
+            channel=test
+          fi
+
+          if [[ "$channel" == stable || "$channel" == rc ]]; then
+            create_release=true
+          else
+            create_release=false
+          fi
+
+          echo "tag=$TAG channel=$channel"
+          echo "create_release=$create_release" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$([[ "$channel" == rc ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+  test:
+    needs: classify_tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.27'
+
+      - uses: rvben/rumdl@v0
+
+      - name: Run CI checks
+        run: make ci
+
+      - name: Run race test
+        run: make test-race
+
+      - name: Run fuzz
+        run: make fuzz FUZZ_TIME=10s
+
+  build-binaries:
+    needs: [classify_tag, test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.27'
+
+      - name: Install additional build tools
+        run: make tools-build
+
+      - name: Build release artifacts
+        run: make release
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-artifacts
+          path: build/*
+          if-no-files-found: error
+
+  publish-containers:
+    needs: [classify_tag, test]
+    runs-on: ubuntu-latest
+    permissions:
+      attestations: write
+      contents: read
+      id-token: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Log in to GitHub Container Registry
+        if: needs.classify_tag.outputs.create_release == 'true'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        if: needs.classify_tag.outputs.create_release == 'true'
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: |
+            ghcr.io/woozymasta/kube-dump
+            docker.io/woozymasta/kube-dump
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable=${{ !contains(github.ref_name, '-') }}
+            type=raw,value=ci-${{ github.sha }},enable=${{ needs.classify_tag.outputs.create_release != 'true' }}
+
+      - name: Extract debug image metadata
+        id: meta-debug
+        uses: docker/metadata-action@v6
+        with:
+          images: |
+            ghcr.io/woozymasta/kube-dump
+            docker.io/woozymasta/kube-dump
+          flavor: |
+            suffix=-debug
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable=${{ !contains(github.ref_name, '-') }}
+            type=raw,value=ci-${{ github.sha }}-debug,enable=${{ needs.classify_tag.outputs.create_release != 'true' }}
+
+      - name: Resolve Docker image tag
+        id: image-tag
+        run: echo "tag=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push images
+        id: push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: ${{ needs.classify_tag.outputs.create_release == 'true' }}
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push debug images
+        id: push-debug
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.debug
+          push: ${{ needs.classify_tag.outputs.create_release == 'true' }}
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          tags: ${{ steps.meta-debug.outputs.tags }}
+          labels: ${{ steps.meta-debug.outputs.labels }}
+          build-args: |
+            KUBE_DUMP_IMAGE=ghcr.io/woozymasta/kube-dump
+            KUBE_DUMP_VERSION=${{ steps.image-tag.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Install Cosign
+        if: needs.classify_tag.outputs.create_release == 'true'
+        uses: sigstore/cosign-installer@v4.1.0
+
+      - name: Sign container images
+        if: needs.classify_tag.outputs.create_release == 'true'
+        run: |
+          cosign sign --yes "ghcr.io/woozymasta/kube-dump@$DIGEST"
+          cosign sign --yes "docker.io/woozymasta/kube-dump@$DIGEST"
+          cosign sign --yes "ghcr.io/woozymasta/kube-dump@$DEBUG_DIGEST"
+          cosign sign --yes "docker.io/woozymasta/kube-dump@$DEBUG_DIGEST"
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+          DEBUG_DIGEST: ${{ steps.push-debug.outputs.digest }}
+
+      - name: Attest GitHub Container Registry image
+        if: needs.classify_tag.outputs.create_release == 'true'
+        uses: actions/attest@v4
+        with:
+          subject-name: ghcr.io/woozymasta/kube-dump
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest GitHub Container Registry debug image
+        if: needs.classify_tag.outputs.create_release == 'true'
+        uses: actions/attest@v4
+        with:
+          subject-name: ghcr.io/woozymasta/kube-dump
+          subject-digest: ${{ steps.push-debug.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest Docker Hub image
+        if: needs.classify_tag.outputs.create_release == 'true'
+        uses: actions/attest@v4
+        with:
+          subject-name: docker.io/woozymasta/kube-dump
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest Docker Hub debug image
+        if: needs.classify_tag.outputs.create_release == 'true'
+        uses: actions/attest@v4
+        with:
+          subject-name: docker.io/woozymasta/kube-dump
+          subject-digest: ${{ steps.push-debug.outputs.digest }}
+          push-to-registry: true
+
+  release:
+    needs: [classify_tag, build-binaries, publish-containers]
+    if: needs.classify_tag.outputs.create_release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-artifacts
+          path: build
+
+      - name: Build release notes
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          image_tag="${VERSION#v}"
+          {
+            printf '## Changes\n'
+            make release-notes
+            printf '## Container images\n\n'
+            printf '```sh\n'
+            printf 'ghcr.io/woozymasta/kube-dump:%s\n' "$image_tag"
+            printf 'docker.io/woozymasta/kube-dump:%s\n' "$image_tag"
+            printf '\n## Debug container images\n\n'
+            printf '```sh\n'
+            printf 'ghcr.io/woozymasta/kube-dump:%s-debug\n' "$image_tag"
+            printf 'docker.io/woozymasta/kube-dump:%s-debug\n' "$image_tag"
+            printf '```\n\n'
+          } > release.md
+
+      - name: Publish Docker Hub description
+        run: |
+          curl -sSfLo ./regdoc --retry 3 \
+            https://github.com/WoozyMasta/regdoc/releases/download/v0.4.0/regdoc-linux-amd64
+          chmod +x ./regdoc
+          ./regdoc docker.io/woozymasta/kube-dump README.md
+        env:
+          REGDOC_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          REGDOC_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Create GitHub release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          prerelease: ${{ needs.classify_tag.outputs.prerelease == 'true' }}
+          bodyFile: release.md
+          artifacts: ./build/*
+
+      - name: Request pkg.go.dev reindex
+        env:
+          MODULE: github.com/woozymasta/kube-dump/v2
+          VERSION: ${{ github.ref_name }}
+        run: |
+          if ! curl -sSfX POST --retry 3 --retry-delay 3 \
+            "https://pkg.go.dev/fetch/${MODULE}@${VERSION}"; then
+            echo "::warning::pkg.go.dev reindex request failed; continuing release"
+          fi

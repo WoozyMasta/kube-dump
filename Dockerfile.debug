@@ -1,0 +1,21 @@
+ARG ALPINE_VERSION=3.24
+ARG ORAS_VERSION=v1.3.4
+ARG REGCTL_VERSION=v0.11.6
+
+ARG KUBE_DUMP_IMAGE=ghcr.io/woozymasta/kube-dump
+ARG KUBE_DUMP_VERSION=latest
+
+FROM ghcr.io/oras-project/oras:$ORAS_VERSION AS oras
+FROM ghcr.io/regclient/regctl:$REGCTL_VERSION AS regctl
+FROM $KUBE_DUMP_IMAGE:$KUBE_DUMP_VERSION AS kube-dump
+
+FROM docker.io/library/alpine:$ALPINE_VERSION
+
+# hadolint ignore=DL3018
+RUN apk add --no-cache \
+  ca-certificates-bundle bash coreutils bind-tools \
+  tar gzip zstd age curl openssh-client git jq yq kubectl
+
+COPY --from=oras /bin/oras /bin/oras
+COPY --from=regctl /regctl /bin/regctl
+COPY --from=kube-dump /kube-dump /bin/kube-dump

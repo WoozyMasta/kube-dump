@@ -1,8 +1,45 @@
+<!-- markdownlint-disable MD024 -->
 # Changelog
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+The format is based on [Keep a Changelog][],
+and this project adheres to [Semantic Versioning][].
+
+<!--
+## Unreleased
+
+### Added
+### Changed
+### Removed
+-->
+
+## [2.0.0][] - 2026-09-11
+
+### Added
+
+* Backup and restore support for PVC filesystems, including CSI snapshots.
+* Container image backup and publishing using the standard OCI Image Layout.
+* S3-compatible storage for Kubernetes resources,
+  PVC backups, and container images.
+* Built-in and custom profiles with reusable selection rules for resources,
+  PVCs, OCI images, and processing rules for Kubernetes manifests.
+* AGE encryption for individual fields in saved Kubernetes manifests
+  and for entire resource and PVC archive files.
+* AES-256-SIV deterministic encryption for individual fields in manifests,
+  avoiding unnecessary changes when the source value stays the same.
+
+### Changed
+
+* kube-dump was completely rewritten in Go as a cross-platform static binary.
+  The v2 CLI and configuration are not compatible with v1.
+* v2 stores Kubernetes resources in a canonical
+  `group/version/resource/namespace/name.yaml` layout.
+* Resource archives now use gzip or zstd compression;
+  xz and bzip2 support from v1 was removed.
+* v2 is licensed under the MIT License.
+
+[2.0.0]: https://github.com/WoozyMasta/a2s/compare/1.1.2...v2.0.0
 
 ## [1.1.2](https://github.com/WoozyMasta/kube-dump/releases/tag/1.1.2) - 2022-05-19
 
@@ -124,3 +161,7 @@ in a container
 * Can specify a list of resources to be dumped
 * It is possible to configure via command line arguments
 * It is possible to configure via environment variables
+
+<!--links-->
+[Keep a Changelog]: https://keepachangelog.com/en/1.1.0/
+[Semantic Versioning]: https://semver.org/spec/v2.0.0.html

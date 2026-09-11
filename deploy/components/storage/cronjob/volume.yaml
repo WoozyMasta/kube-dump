@@ -1,0 +1,20 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: kube-dump
+
+spec:
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: kube-dump
+              volumeMounts:
+                - name: data
+                  mountPath: /data
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: kube-dump

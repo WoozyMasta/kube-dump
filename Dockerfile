@@ -1,16 +1,31 @@
-FROM alpine:3.15
+# syntax=docker/dockerfile:1
 
-ARG KUBECTL_VERSION="1.24.0"
+ARG GO_VERSION=1.27
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:$GO_VERSION AS build
 
-LABEL maintainer="woozymasta@gmail.com"
+ARG TARGETOS
+ARG TARGETARCH
+ARG CONTAINER_IMAGE
 
-# hadolint ignore=DL3018
-RUN apk add --update --no-cache \
-    bash bind-tools jq yq openssh-client git tar xz gzip bzip2 curl coreutils grep && \
-    curl -sLo /usr/bin/kubectl \
-    "https://storage.googleapis.com/kubernetes-release/release/v$KUBECTL_VERSION/bin/linux/amd64/kubectl" && \
-    chmod +x /usr/bin/kubectl
+WORKDIR /src
 
-COPY ./kube-dump /kube-dump
+COPY go.mod go.sum Makefile ./
+RUN make download tool-schemadoc
 
-ENTRYPOINT [ "/kube-dump" ]
+COPY . .
+RUN make generate compile \
+  BUILD_GOOS="$TARGETOS" \
+  BUILD_GOARCH="$TARGETARCH" \
+  CONTAINER_IMAGE="$CONTAINER_IMAGE" && \
+  install -d -m 1777 /runtime-tmp
+
+FROM scratch
+
+COPY --from=build /runtime-tmp /tmp
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=build /src/build/kube-dump /kube-dump
+
+USER 65532:65532
+
+ENTRYPOINT ["/kube-dump"]
+CMD ["version"]

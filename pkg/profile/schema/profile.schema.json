@@ -1,0 +1,687 @@
+{
+  "$defs": {
+    "AnnotationSelector": {
+      "additionalProperties": false,
+      "description": "AnnotationSelector applies Kubernetes-style requirements to annotations.",
+      "properties": {
+        "matchExpressions": {
+          "description": "MatchExpressions supports membership and key-existence operators.",
+          "items": {
+            "$ref": "#/$defs/SelectorRequirement"
+          },
+          "maxItems": 64,
+          "type": "array",
+          "uniqueItems": true,
+          "x-order": "20"
+        },
+        "matchLabels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "MatchLabels requires exact annotation key/value pairs.",
+          "type": "object",
+          "x-order": "10"
+        }
+      },
+      "type": "object"
+    },
+    "ImagePolicy": {
+      "additionalProperties": false,
+      "description": "ImagePolicy describes profile defaults for images referenced by Pods.",
+      "properties": {
+        "selection": {
+          "$ref": "#/$defs/ImageSelectionSpec",
+          "description": "Selection limits image discovery by Pod namespace, metadata, container type, and image reference."
+        }
+      },
+      "required": [
+        "selection"
+      ],
+      "type": "object"
+    },
+    "ImageReferenceSpec": {
+      "additionalProperties": false,
+      "description": "ImageReferenceSpec matches an image reference without conflating repository selection with tag selection.",
+      "properties": {
+        "registry": {
+          "description": "Registry is the registry host glob, for example docker.io or ghcr.io.",
+          "examples": [
+            "docker.io"
+          ],
+          "maxLength": 253,
+          "minLength": 1,
+          "type": "string",
+          "x-order": "10"
+        },
+        "repository": {
+          "description": "Repository is the repository path glob without the registry or tag.",
+          "examples": [
+            "library/*"
+          ],
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string",
+          "x-order": "20"
+        },
+        "tags": {
+          "description": "Tags accepts image tags matching at least one shell-style glob pattern.\nAn empty list accepts tagged and digest-pinned references.",
+          "items": {
+            "examples": [
+              "MR-*",
+              "*-rc.*"
+            ],
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 64,
+          "type": "array",
+          "uniqueItems": true,
+          "x-order": "30"
+        }
+      },
+      "required": [
+        "registry",
+        "repository"
+      ],
+      "type": "object"
+    },
+    "ImageSelectionSpec": {
+      "additionalProperties": false,
+      "description": "ImageSelectionSpec selects image references from Pods by namespace, name, labels, annotations, owners, and image reference.",
+      "properties": {
+        "annotationSelector": {
+          "$ref": "#/$defs/AnnotationSelector",
+          "description": "AnnotationSelector filters objects by the same operators\nand conjunction semantics as LabelSelector, applied to annotations.",
+          "x-order": "40"
+        },
+        "containerTypes": {
+          "description": "ContainerTypes limits matches to regular containers, init containers, or both.",
+          "items": {
+            "enum": [
+              "container",
+              "initContainer"
+            ],
+            "examples": [
+              "container",
+              "initContainer"
+            ],
+            "type": "string"
+          },
+          "maxItems": 2,
+          "type": "array",
+          "uniqueItems": true,
+          "x-order": "30"
+        },
+        "labelSelector": {
+          "$ref": "#/$defs/Selector",
+          "description": "LabelSelector filters objects by Kubernetes label-selector semantics.",
+          "x-order": "30"
+        },
+        "names": {
+          "description": "Names limits objects to names matching shell-style globs.\nA leading `!` excludes matching names; an empty list matches every name.\nQuote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
+          "items": {
+            "examples": [
+              "api-*",
+              "!api-temporary-*"
+            ],
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 256,
+          "type": "array",
+          "uniqueItems": true,
+          "x-order": "20"
+        },
+        "namespaces": {
+          "description": "Namespaces limits objects to namespace names matching shell-style globs.\nA leading `!` excludes matching namespaces; an empty list matches every namespace.\nQuote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
+          "items": {
+            "examples": [
+              "production",
+              "!kube-*"
+            ],
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 256,
+          "type": "array",
+          "uniqueItems": true,
+          "x-order": "10"
+        },
+        "owners": {
+          "$ref": "#/$defs/OwnerSelectionSpec",
+          "description": "Owners selects objects in the ownerReference chain of a selected Pod.\nA Pod is included only when at least one owner matches all configured owner filters.\nUse Resources to distinguish Deployments, DaemonSets, StatefulSets, Jobs, and other Kubernetes owner objects.",
+          "x-order": "20"
+        },
+        "references": {
+          "description": "References selects images by registry, repository, and optional tag globs.\nMultiple entries are combined with OR semantics.",
+          "items": {
+            "$ref": "#/$defs/ImageReferenceSpec"
+          },
+          "maxItems": 256,
+          "type": "array",
+          "uniqueItems": true,
+          "x-order": "40"
+        }
+      },
+      "type": "object"
+    },
+    "MatchSpec": {
+      "additionalProperties": false,
+      "description": "MatchSpec selects objects by resource identity and metadata.",
+      "properties": {
+        "annotationSelector": {
+          "$ref": "#/$defs/AnnotationSelector",
+          "description": "AnnotationSelector filters objects by the same operators\nand conjunction semantics as LabelSelector, applied to annotations.",
+          "x-order": "40"
+        },
+        "labelSelector": {
+          "$ref": "#/$defs/Selector",
+          "description": "LabelSelector filters objects by Kubernetes label-selector semantics.",
+          "x-order": "30"
+        },
+        "names": {
+          "description": "Names limits objects to names matching shell-style globs.\nA leading `!` excludes matching names; an empty list matches every name.\nQuote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
+          "items": {
+            "examples": [
+              "api-*",
+              "!api-temporary-*"
+            ],
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 256,
+          "type": "array",
+          "uniqueItems": true,
+          "x-order": "20"
+        },
+        "namespaces": {
+          "description": "Namespaces limits objects to namespace names matching shell-style globs.\nA leading `!` excludes matching namespaces; an empty list matches every namespace.\nQuote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
+          "items": {
+            "examples": [
+              "production",
+              "!kube-*"
+            ],
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 256,
+          "type": "array",
+          "uniqueItems": true,
+          "x-order": "10"
+        },
+        "resources": {
+          "description": "Resources restricts the rule to `group/version/resource[:name]` expressions.",
+          "items": {
+            "examples": [
+              "core/v1/secrets",
+              "apps/v1/deployments:api"
+            ],
+            "maxLength": 253,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 512,
+          "type": "array",
+          "uniqueItems": true,
+          "x-order": "5"
+        }
+      },
+      "type": "object"
+    },
+    "Metadata": {
+      "additionalProperties": false,
+      "description": "Metadata gives a profile a stable catalog alias and a description shown to users.",
+      "properties": {
+        "description": {
+          "description": "Description is a concise user-facing explanation of the profile's purpose.",
+          "examples": [
+            "Clean export suitable for sharing or redeployment"
+          ],
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string",
+          "x-order": "20"
+        },
+        "name": {
+          "description": "Name is the lowercase alias used with --profile and profile commands.",
+          "examples": [
+            "clean-export"
+          ],
+          "maxLength": 63,
+          "minLength": 1,
+          "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+          "type": "string",
+          "x-order": "10"
+        }
+      },
+      "required": [
+        "name",
+        "description"
+      ],
+      "type": "object"
+    },
+    "OwnerSelectionSpec": {
+      "additionalProperties": false,
+      "description": "OwnerSelectionSpec selects owner objects from a Pod's ownerReference chain by namespace, name, labels, and annotations.",
+      "properties": {
+        "annotationSelector": {
+          "$ref": "#/$defs/AnnotationSelector",
+          "description": "AnnotationSelector filters objects by the same operators\nand conjunction semantics as LabelSelector, applied to annotations.",
+          "x-order": "40"
+        },
+        "labelSelector": {
+          "$ref": "#/$defs/Selector",
+          "description": "LabelSelector filters objects by Kubernetes label-selector semantics.",
+          "x-order": "30"
+        },
+        "names": {
+          "description": "Names limits objects to names matching shell-style globs.\nA leading `!` excludes matching names; an empty list matches every name.\nQuote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
+          "items": {
+            "examples": [
+              "api-*",
+              "!api-temporary-*"
+            ],
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 256,
+          "type": "array",
+          "uniqueItems": true,
+          "x-order": "20"
+        },
+        "namespaces": {
+          "description": "Namespaces limits objects to namespace names matching shell-style globs.\nA leading `!` excludes matching namespaces; an empty list matches every namespace.\nQuote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
+          "items": {
+            "examples": [
+              "production",
+              "!kube-*"
+            ],
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 256,
+          "type": "array",
+          "uniqueItems": true,
+          "x-order": "10"
+        },
+        "resources": {
+          "description": "Resources limits matching owners to Kubernetes resource identities such as `apps/v1/deployments` or `apps/v1/daemonsets`.\nAn empty list accepts any owner in the Pod's ownerReference chain.",
+          "items": {
+            "examples": [
+              "apps/v1/deployments"
+            ],
+            "maxLength": 253,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 128,
+          "type": "array",
+          "uniqueItems": true,
+          "x-order": "5"
+        }
+      },
+      "type": "object"
+    },
+    "PVCPolicy": {
+      "additionalProperties": false,
+      "description": "PVCPolicy describes profile defaults for persistent-volume claim data.",
+      "properties": {
+        "selection": {
+          "$ref": "#/$defs/PVCSelectionSpec",
+          "description": "Selection limits PVC data by namespace, name, and Kubernetes metadata."
+        }
+      },
+      "required": [
+        "selection"
+      ],
+      "type": "object"
+    },
+    "PVCSelectionSpec": {
+      "additionalProperties": false,
+      "description": "PVCSelectionSpec selects PVC data by namespace, name, labels, and annotations.",
+      "properties": {
+        "annotationSelector": {
+          "$ref": "#/$defs/AnnotationSelector",
+          "description": "AnnotationSelector filters objects by the same operators\nand conjunction semantics as LabelSelector, applied to annotations.",
+          "x-order": "40"
+        },
+        "labelSelector": {
+          "$ref": "#/$defs/Selector",
+          "description": "LabelSelector filters objects by Kubernetes label-selector semantics.",
+          "x-order": "30"
+        },
+        "names": {
+          "description": "Names limits objects to names matching shell-style globs.\nA leading `!` excludes matching names; an empty list matches every name.\nQuote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
+          "items": {
+            "examples": [
+              "api-*",
+              "!api-temporary-*"
+            ],
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 256,
+          "type": "array",
+          "uniqueItems": true,
+          "x-order": "20"
+        },
+        "namespaces": {
+          "description": "Namespaces limits objects to namespace names matching shell-style globs.\nA leading `!` excludes matching namespaces; an empty list matches every namespace.\nQuote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
+          "items": {
+            "examples": [
+              "production",
+              "!kube-*"
+            ],
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 256,
+          "type": "array",
+          "uniqueItems": true,
+          "x-order": "10"
+        }
+      },
+      "type": "object"
+    },
+    "Profile": {
+      "additionalProperties": false,
+      "description": "Profile is the complete YAML policy consumed by kube-dump.",
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion identifies the profile contract version.",
+          "enum": [
+            "kube-dump/v2"
+          ],
+          "examples": [
+            "kube-dump/v2"
+          ],
+          "type": "string",
+          "x-order": "10"
+        },
+        "images": {
+          "$ref": "#/$defs/ImagePolicy",
+          "description": "Images defines optional Pod metadata, container, and image-reference filters.\nAn empty selection includes every image allowed by runtime flags.",
+          "x-order": "60"
+        },
+        "kind": {
+          "description": "Kind identifies the document as a kube-dump profile.",
+          "enum": [
+            "Profile"
+          ],
+          "examples": [
+            "Profile"
+          ],
+          "type": "string",
+          "x-order": "20"
+        },
+        "metadata": {
+          "$ref": "#/$defs/Metadata",
+          "description": "Metadata gives the profile its catalog name and user-facing description.",
+          "x-order": "30"
+        },
+        "pvc": {
+          "$ref": "#/$defs/PVCPolicy",
+          "description": "PVC defines optional namespace, metadata, and name filters for PVC data.\nAn empty selection includes every PVC allowed by runtime flags.",
+          "x-order": "50"
+        },
+        "resources": {
+          "$ref": "#/$defs/ResourcePolicy",
+          "description": "Resources defines which Kubernetes API objects are collected\nand how they are normalized before serialization.",
+          "x-order": "40"
+        }
+      },
+      "required": [
+        "metadata",
+        "apiVersion",
+        "kind",
+        "resources"
+      ],
+      "type": "object"
+    },
+    "ResourcePolicy": {
+      "additionalProperties": false,
+      "description": "ResourcePolicy describes API-object selection and ordered object transforms.",
+      "properties": {
+        "omitEmpty": {
+          "description": "OmitEmpty removes null values and empty maps or lists from resource objects before serialization.\nZero values, false values, and empty strings are kept.",
+          "type": "boolean",
+          "x-order": "5"
+        },
+        "rules": {
+          "description": "Rules are evaluated in declaration order after selection.\nWhen omitted or empty, no fields are removed or encrypted.",
+          "items": {
+            "$ref": "#/$defs/RuleSpec"
+          },
+          "maxItems": 512,
+          "type": "array",
+          "x-order": "20"
+        },
+        "selection": {
+          "$ref": "#/$defs/ResourceSelectionSpec",
+          "description": "Selection defines the initial set of API objects admitted by the profile.\nWhen omitted or empty, all discovered resources are included.",
+          "x-order": "10"
+        }
+      },
+      "type": "object"
+    },
+    "ResourceSelectionSpec": {
+      "additionalProperties": false,
+      "description": "ResourceSelectionSpec selects Kubernetes API objects by resource, namespace, name, labels, and annotations before rule processing.",
+      "properties": {
+        "annotationSelector": {
+          "$ref": "#/$defs/AnnotationSelector",
+          "description": "AnnotationSelector filters objects by the same operators\nand conjunction semantics as LabelSelector, applied to annotations.",
+          "x-order": "40"
+        },
+        "labelSelector": {
+          "$ref": "#/$defs/Selector",
+          "description": "LabelSelector filters objects by Kubernetes label-selector semantics.",
+          "x-order": "30"
+        },
+        "names": {
+          "description": "Names limits objects to names matching shell-style globs.\nA leading `!` excludes matching names; an empty list matches every name.\nQuote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
+          "items": {
+            "examples": [
+              "api-*",
+              "!api-temporary-*"
+            ],
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 256,
+          "type": "array",
+          "uniqueItems": true,
+          "x-order": "20"
+        },
+        "namespaces": {
+          "description": "Namespaces limits objects to namespace names matching shell-style globs.\nA leading `!` excludes matching namespaces; an empty list matches every namespace.\nQuote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
+          "items": {
+            "examples": [
+              "production",
+              "!kube-*"
+            ],
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 256,
+          "type": "array",
+          "uniqueItems": true,
+          "x-order": "10"
+        },
+        "resources": {
+          "description": "Resources is an ordered list of `group/version/resource[:name]` expressions.\nA leading `!` excludes matching resources or a specific object name.\nQuote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
+          "items": {
+            "examples": [
+              "core/v1/configmaps",
+              "!core/v1/configmaps:kube-root-ca.crt"
+            ],
+            "maxLength": 253,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 512,
+          "type": "array",
+          "uniqueItems": true,
+          "x-order": "5"
+        }
+      },
+      "type": "object"
+    },
+    "RuleSpec": {
+      "additionalProperties": false,
+      "description": "RuleSpec describes one ordered transformation applied to matching objects.",
+      "oneOf": [
+        {
+          "required": [
+            "remove"
+          ],
+          "title": "remove"
+        },
+        {
+          "required": [
+            "encrypt"
+          ],
+          "title": "encrypt"
+        }
+      ],
+      "properties": {
+        "encrypt": {
+          "description": "Encrypt lists dot/bracket field paths protected when runtime encryption is configured.\nWithout recipients or an AES-SIV keyring, the selected fields remain plaintext.",
+          "items": {
+            "examples": [
+              ".data.*"
+            ],
+            "maxLength": 1024,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 128,
+          "type": "array",
+          "uniqueItems": true,
+          "x-order": "40"
+        },
+        "match": {
+          "$ref": "#/$defs/MatchSpec",
+          "description": "Match selects the objects affected by this rule; all populated match fields must pass.",
+          "x-order": "20"
+        },
+        "name": {
+          "description": "Name labels the rule in validation errors and diagnostics.",
+          "examples": [
+            "remove-runtime-metadata"
+          ],
+          "maxLength": 63,
+          "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+          "type": "string",
+          "x-order": "10"
+        },
+        "remove": {
+          "description": "Remove lists dot/bracket field paths deleted before serialization.",
+          "items": {
+            "examples": [
+              ".metadata.creationTimestamp"
+            ],
+            "maxLength": 1024,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 128,
+          "type": "array",
+          "uniqueItems": true,
+          "x-order": "30"
+        }
+      },
+      "required": [
+        "match"
+      ],
+      "type": "object"
+    },
+    "Selector": {
+      "additionalProperties": false,
+      "description": "Selector is a Kubernetes-style conjunction of label requirements.",
+      "properties": {
+        "matchExpressions": {
+          "description": "MatchExpressions supports membership and key-existence operators.",
+          "items": {
+            "$ref": "#/$defs/SelectorRequirement"
+          },
+          "maxItems": 64,
+          "type": "array",
+          "uniqueItems": true,
+          "x-order": "20"
+        },
+        "matchLabels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "MatchLabels requires exact key/value pairs.",
+          "type": "object",
+          "x-order": "10"
+        }
+      },
+      "type": "object"
+    },
+    "SelectorRequirement": {
+      "additionalProperties": false,
+      "description": "SelectorRequirement is one operator-based label or annotation requirement.",
+      "properties": {
+        "key": {
+          "description": "Key is the label or annotation key to test.",
+          "examples": [
+            "environment"
+          ],
+          "maxLength": 253,
+          "minLength": 1,
+          "type": "string",
+          "x-order": "10"
+        },
+        "operator": {
+          "description": "Operator determines how Key and Values are evaluated.",
+          "enum": [
+            "In",
+            "NotIn",
+            "Exists",
+            "DoesNotExist"
+          ],
+          "examples": [
+            "In"
+          ],
+          "type": "string",
+          "x-order": "20"
+        },
+        "values": {
+          "description": "Values contains operands for In and NotIn operators.",
+          "items": {
+            "examples": [
+              "prod"
+            ],
+            "type": "string"
+          },
+          "maxItems": 64,
+          "type": "array",
+          "uniqueItems": true,
+          "x-order": "30"
+        }
+      },
+      "required": [
+        "key",
+        "operator"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://github.com/woozymasta/kube-dump/v2/pkg/profile/profile",
+  "$ref": "#/$defs/Profile",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

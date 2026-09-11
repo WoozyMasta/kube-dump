@@ -1,13 +1,31 @@
-# Examples
+# kube-dump documentation
 
-Below are examples of how you can run kube-dump to get started
+kube-dump is a cross-platform utility for backing up
+and exporting Kubernetes resources, PVC data, and container images.
 
-* [Run on a local machine](./local.md)
-  (dependencies and a config for kubectl are required)
-* [Run in container](./container.md)
-  (docker, podman, etc. required and a config for kubectl)
-* [Run in kubernetes as pod](./pod.md)
-  (requires access to the kubernetes cluster and config for kubectl)
-* [Run in kubernetes as a cron job using a service account](./cronjob.md)
-  (requires access to the kubernetes cluster and the ability to create a role
-  or cluster role)
+Choose a language:
+
+* [English](en/README.md)
+* [Русский](ru/README.md)
+* [中文](zh/README.md)
+
+Each language section includes:
+
+* installation and Kubernetes/CI deployment;
+* usage guides for resources, PVC data, and images;
+* profiles, encryption, and recovery;
+* CLI and profile references.
+
+Useful project files:
+
+* [CLI reference](cli.md);
+* [profile reference](profile.md);
+* [example profile](example.profile.yaml);
+* [profile JSON Schema](../pkg/profile/schema/profile.schema.json);
+* built-in profiles:
+  * [backup](../internal/profile/builtin/backup.yaml),
+  * [export](../internal/profile/builtin/export.yaml),
+  * [raw](../internal/profile/builtin/raw.yaml).
+
+The generated documentation site is available at
+[kube-dump.woozymasta.ru](https://kube-dump.woozymasta.ru/).

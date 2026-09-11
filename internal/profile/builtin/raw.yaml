@@ -1,0 +1,16 @@
+---
+apiVersion: kube-dump/v2
+kind: Profile
+metadata:
+  name: raw
+  description: Keep every discovered Kubernetes object with no cleanup
+
+# Raw keeps the complete discovered object set and applies no normalization.
+# An empty resource policy means all discovered resources with no rules.
+resources: {}
+
+# No PVC metadata filters are applied by the raw profile.
+pvc: {}
+
+# No Pod or image filters are applied by the raw profile.
+images: {}

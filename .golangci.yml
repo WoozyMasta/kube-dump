@@ -1,0 +1,57 @@
+version: "2"
+run:
+  tests: false
+linters:
+  enable:
+    - modernize
+    - prealloc
+    - tagliatelle
+    - perfsprint
+    - asciicheck
+    - bidichk
+    - decorder
+    - dupl
+    - gocritic
+    - bodyclose
+    - gosec
+    - nilerr
+    - predeclared
+    - revive
+    - rowserrcheck
+    - tparallel
+    - unconvert
+    - unparam
+    - whitespace
+    - staticcheck
+    - goheader
+  exclusions:
+    generated: lax
+    presets:
+      - common-false-positives
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+  settings:
+    goheader:
+      template: |-
+        SPDX-License-Identifier: MIT
+        SPDX-FileCopyrightText: Copyright 2026 WoozyMasta
+        Source: https://github.com/WoozyMasta/kube-dump
+    tagliatelle:
+      case:
+        rules:
+          json: camel
+          yaml: camel
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+formatters:
+  enable:
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

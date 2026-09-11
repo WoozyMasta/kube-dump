@@ -1,0 +1,72 @@
+apiVersion: kube-dump/v2
+kind: Profile
+metadata:
+  name: boundary
+  description: Exercise combined selection, cleanup, and field encryption rules
+
+resources:
+  selection:
+    resources:
+      - core/v1/namespaces
+      - core/v1/configmaps
+      - core/v1/secrets
+      - apps/v1/deployments
+      - "!core/v1/configmaps:boundary-excluded"
+    labelSelector:
+      matchLabels:
+        integration.kube-dump/profile: boundary
+    annotationSelector:
+      matchExpressions:
+        - key: integration.kube-dump/selected
+          operator: Exists
+
+  rules:
+    - name: remove-transient-fields
+      match:
+        resources:
+          - "*"
+      remove:
+        - .metadata.annotations["integration.kube-dump/transient"]
+        - .metadata.managedFields
+        - .metadata.resourceVersion
+        - .metadata.uid
+        - .metadata.creationTimestamp
+
+    - name: encrypt-secret-fields
+      match:
+        resources:
+          - core/v1/secrets
+      encrypt:
+        - .metadata.name
+        - .metadata.namespace
+        - .data.*
+        - .stringData.*
+
+pvc:
+  selection:
+    names:
+      - selected-*
+    labelSelector:
+      matchLabels:
+        integration.kube-dump/profile: boundary
+    annotationSelector:
+      matchExpressions:
+        - key: integration.kube-dump/selected
+          operator: Exists
+
+images:
+  selection:
+    labelSelector:
+      matchLabels:
+        integration.kube-dump/profile: boundary
+    annotationSelector:
+      matchExpressions:
+        - key: integration.kube-dump/selected
+          operator: Exists
+    containerTypes:
+      - initContainer
+    references:
+      - registry: "*"
+        repository: integration/*
+        tags:
+          - v1

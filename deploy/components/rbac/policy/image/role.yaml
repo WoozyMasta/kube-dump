@@ -1,0 +1,22 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kube-dump-images
+
+rules:
+  # Image references and optional imagePullSecrets are read from Pods.
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list]
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [get]
+
+  # Standard Pod owner chains require ReplicaSet/Deployment and Job/CronJob reads.
+  - apiGroups: [apps]
+    resources: [daemonsets, deployments, replicasets, statefulsets]
+    verbs: [get]
+  - apiGroups: [batch]
+    resources: [cronjobs, jobs]
+    verbs: [get]

@@ -1,0 +1,47 @@
+name: Scan release
+
+on:
+  repository_dispatch:
+    types: [virustotal-scan]
+
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag to scan"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: virustotal-${{ github.event.client_payload.release_id || inputs.release_tag || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  virustotal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: VirusTotal Artifacts Scan
+        uses: WoozyMasta/virustotal-action@v2
+        with:
+          github_token: ${{ github.token }}
+          vt_api_key: ${{ secrets.VT_API_KEY }}
+
+          release_id: ${{ github.event.client_payload.release_id }}
+          release_tag: ${{ inputs.release_tag }}
+
+          asset_globs: |
+            kube-dump-*
+          excluded_extensions: "*.tar.gz"
+
+          require_all_globs: true
+          rate_limit: 4
+          update_release: true
+
+          request_timeout: 120
+          retries: 4
+          retry_base_delay: 5
+          retry_max_delay: 60

@@ -1,0 +1,12 @@
+apiVersion: database.example.io/v1
+kind: Cluster
+metadata:
+    name: database
+    namespace: default
+spec:
+    password: !kube-dump/age |-
+        YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0-IFgyNTUxOSBqcENBQi9NVVYzajRNMDJ0UE5HUjQvSnd2
+        N3VrUktmd0VKK2N1WmcxakEwCko0bTJibnkyWkVnQy8wRlk5ZU1CZlYyYStVWUlyWGdFSmZQdHF2
+        czdORU0KLS0tIDNpMXRselYvWHE1L2Q4d2pla3RmMVpJWFZoQ2xFOS9qbEdHdExDR1pOOWMKpSSs
+        ZgBbUvYKAY-2DGjCRMCQdB58oBkgNEhE7MpowWAuc1NA9-203A
+    replicas: 3
