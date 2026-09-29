@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: Copyright 2026 WoozyMasta
+// SPDX-FileCopyrightText: Copyright 2021-2026 WoozyMasta
 // Source: https://github.com/WoozyMasta/kube-dump
 
 // Package export writes normalized Kubernetes objects to local destinations.

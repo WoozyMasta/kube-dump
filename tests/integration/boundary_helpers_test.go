@@ -1,7 +1,7 @@
 //go:build integration
 
 // SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: Copyright 2026 WoozyMasta
+// SPDX-FileCopyrightText: Copyright 2021-2026 WoozyMasta
 // Source: https://github.com/WoozyMasta/kube-dump
 
 package integration_test

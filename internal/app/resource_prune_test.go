@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright 2026 WoozyMasta
+// SPDX-FileCopyrightText: Copyright 2021-2026 WoozyMasta
 // Source: https://github.com/woozymasta/kube-dump
 
 package app
