@@ -2,8 +2,6 @@ name: Docs
 
 on:
   workflow_dispatch:
-  release:
-    types: [published]
   workflow_run:
     workflows: [Release]
     types: [completed]
@@ -21,7 +19,6 @@ jobs:
   build:
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'release' ||
       github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
