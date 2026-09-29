@@ -28,67 +28,6 @@ func TestValidateRejectsOversizedLayoutMarker(t *testing.T) {
 	}
 }
 
-func TestInspectGraphReportsDockerLayersAndReuse(t *testing.T) {
-	t.Parallel()
-
-	root := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(root, "blobs", "sha256"), 0o750); err != nil {
-		t.Fatal(err)
-	}
-
-	config := []byte(`{"architecture":"amd64"}`)
-	layerOne := []byte("layer one")
-	layerTwo := []byte("layer two")
-	configDescriptor := descriptorFor("application/vnd.docker.container.image.v1+json", config)
-	layerOneDescriptor := descriptorFor("application/vnd.docker.image.rootfs.diff.tar.gzip", layerOne)
-	layerTwoDescriptor := descriptorFor("application/vnd.docker.image.rootfs.diff.tar.gzip", layerTwo)
-	manifest := ocispec.Manifest{
-		SchemaVersion: 2,
-		Config:        configDescriptor,
-		Layers:        []ocispec.Descriptor{layerOneDescriptor, layerTwoDescriptor},
-	}
-	manifestData, err := json.Marshal(manifest)
-	if err != nil {
-		t.Fatal(err)
-	}
-	manifestDescriptor := descriptorFor("application/vnd.docker.distribution.manifest.v2+json", manifestData)
-
-	for _, item := range []struct {
-		descriptor ocispec.Descriptor
-		data       []byte
-	}{
-		{configDescriptor, config},
-		{layerOneDescriptor, layerOne},
-		{layerTwoDescriptor, layerTwo},
-		{manifestDescriptor, manifestData},
-	} {
-		path := filepath.Join(root, "blobs", item.descriptor.Digest.Algorithm().String(), item.descriptor.Digest.Encoded())
-		if err := os.WriteFile(path, item.data, 0o640); err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	progress, err := inspectGraph(root, manifestDescriptor, map[string]struct{}{
-		layerOneDescriptor.Digest.String(): {},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if progress.Total != 4 || progress.Completed != 4 {
-		t.Fatalf("graph node counts = %#v, want 4/4", progress)
-	}
-	if progress.Layers != 2 || progress.LayerBytesTotal != int64(len(layerOne)+len(layerTwo)) {
-		t.Fatalf("layer metrics = %#v", progress)
-	}
-	if progress.ReusedLayers != 1 || progress.LayerBytesReused != int64(len(layerOne)) {
-		t.Fatalf("reused layer metrics = %#v", progress)
-	}
-	if progress.LayerBytesTransferred != int64(len(layerTwo)) {
-		t.Fatalf("transferred layer metrics = %#v", progress)
-	}
-}
-
 func TestIsImageLayerRecognizesOCIAndDockerMediaTypes(t *testing.T) {
 	t.Parallel()
 
@@ -241,6 +180,51 @@ func TestInspectRejectsUnsupportedLayoutVersion(t *testing.T) {
 		[]byte(`{"schemaVersion":2}`),
 	); err == nil {
 		t.Fatal("InspectMetadata() accepted an unsupported OCI layout version")
+	}
+}
+
+func TestValidateAcceptsUnknownLeafMediaType(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "blobs", "sha256"), 0o750); err != nil {
+		t.Fatal(err)
+	}
+
+	configData := []byte(`{}`)
+	config := descriptorFor(ocispec.MediaTypeEmptyJSON, configData)
+	manifestData, err := json.Marshal(ocispec.Manifest{
+		SchemaVersion: 2,
+		Config:        config,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest := descriptorFor(ocispec.MediaTypeImageManifest, manifestData)
+
+	for _, item := range []struct {
+		descriptor ocispec.Descriptor
+		data       []byte
+	}{
+		{config, configData},
+		{manifest, manifestData},
+	} {
+		path := filepath.Join(root, "blobs", item.descriptor.Digest.Algorithm().String(), item.descriptor.Digest.Encoded())
+		if err := os.WriteFile(path, item.data, 0o640); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	index, err := json.Marshal(ocispec.Index{
+		SchemaVersion: 2,
+		Manifests:     []ocispec.Descriptor{manifest},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := validateIndexGraph(root, index); err != nil {
+		t.Fatalf("validateIndexGraph() rejected an unknown leaf media type: %v", err)
 	}
 }
 

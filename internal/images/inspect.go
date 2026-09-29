@@ -13,7 +13,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 
 	godigest "github.com/opencontainers/go-digest"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
@@ -158,9 +157,7 @@ func validateIndexGraph(root string, indexData []byte) error {
 			)
 		}
 
-		if err := inspectGraphDescriptor(
-			root, descriptor, nil, seen, &PullProgress{},
-		); err != nil {
+		if err := inspectGraphDescriptor(root, descriptor, seen); err != nil {
 			return fmt.Errorf("validate top-level descriptor %d: %w", position, err)
 		}
 	}
@@ -245,34 +242,13 @@ func countBlobs(root string, summary *Summary) error {
 	return nil
 }
 
-// inspectGraph summarizes the complete content graph rooted at descriptor.
-// The existing set is captured before a pull
-// and distinguishes transferred content from blobs already present in the local layout.
-func inspectGraph(root string, descriptor ocispec.Descriptor, existing map[string]struct{}) (PullProgress, error) {
-	progress := PullProgress{}
-	seen := make(map[string]struct{})
-	if err := inspectGraphDescriptor(root, descriptor, existing, seen, &progress); err != nil {
-		return PullProgress{}, err
-	}
-
-	progress.Completed = progress.Total
-	progress.BytesCompleted = progress.BytesTotal
-
-	return progress, nil
-}
-
 // inspectGraphDescriptor walks one manifest graph node exactly once.
-// It validates local content and accounts for logical, transferred, and reused sizes.
+// It validates local content.
 func inspectGraphDescriptor(
 	root string,
 	descriptor ocispec.Descriptor,
-	existing, seen map[string]struct{},
-	progress *PullProgress,
+	seen map[string]struct{},
 ) error {
-	if !isKnownImageDescriptor(descriptor.MediaType) {
-		return fmt.Errorf("unsupported descriptor media type %q", descriptor.MediaType)
-	}
-
 	digest := descriptor.Digest.String()
 	if digest == "" {
 		return errors.New("image graph contains a descriptor without a digest")
@@ -284,26 +260,6 @@ func inspectGraphDescriptor(
 	seen[digest] = struct{}{}
 	if err := validateDescriptorBlob(root, descriptor); err != nil {
 		return fmt.Errorf("validate image graph blob %s: %w", digest, err)
-	}
-
-	size := max(descriptor.Size, 0)
-	progress.Total++
-	progress.BytesTotal += size
-	if _, ok := existing[digest]; ok {
-		progress.BytesReused += size
-	} else {
-		progress.BytesTransferred += size
-	}
-
-	if isImageLayer(descriptor.MediaType) {
-		progress.Layers++
-		progress.LayerBytesTotal += size
-		if _, ok := existing[digest]; ok {
-			progress.ReusedLayers++
-			progress.LayerBytesReused += size
-		} else {
-			progress.LayerBytesTransferred += size
-		}
 	}
 
 	if !isManifestDescriptor(descriptor.MediaType) {
@@ -332,7 +288,7 @@ func inspectGraphDescriptor(
 		}
 
 		for _, child := range index.Manifests {
-			if err := inspectGraphDescriptor(root, child, existing, seen, progress); err != nil {
+			if err := inspectGraphDescriptor(root, child, seen); err != nil {
 				return err
 			}
 		}
@@ -343,11 +299,11 @@ func inspectGraphDescriptor(
 			return fmt.Errorf("parse image manifest %s: %w", digest, err)
 		}
 
-		if err := inspectGraphDescriptor(root, manifest.Config, existing, seen, progress); err != nil {
+		if err := inspectGraphDescriptor(root, manifest.Config, seen); err != nil {
 			return err
 		}
 		for _, layer := range manifest.Layers {
-			if err := inspectGraphDescriptor(root, layer, existing, seen, progress); err != nil {
+			if err := inspectGraphDescriptor(root, layer, seen); err != nil {
 				return err
 			}
 		}
@@ -387,15 +343,6 @@ func readImageIndex(root string) ([]byte, error) {
 	}
 
 	return data, nil
-}
-
-// isKnownImageDescriptor accepts image manifest, config,
-// and layer media types emitted by OCI and Docker registries.
-func isKnownImageDescriptor(mediaType string) bool {
-	return isManifestDescriptor(mediaType) ||
-		mediaType == ocispec.MediaTypeImageConfig ||
-		strings.HasPrefix(mediaType, "application/vnd.docker.container.image") ||
-		isImageLayer(mediaType)
 }
 
 // validateDescriptorBlob verifies the regular file, exact size,

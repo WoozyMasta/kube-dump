@@ -93,8 +93,7 @@ func TestValidatingStoreRemovesCorruptBlobInsteadOfReusingIt(t *testing.T) {
 	}
 
 	store := &validatingStore{
-		root:      root,
-		validated: make(map[string]struct{}),
+		root: root,
 	}
 	exists, err := store.Exists(context.Background(), descriptor)
 	if err != nil {
@@ -123,8 +122,7 @@ func TestValidatingStoreAcceptsOnlyMatchingBlob(t *testing.T) {
 	}
 
 	store := &validatingStore{
-		root:      root,
-		validated: make(map[string]struct{}),
+		root: root,
 	}
 	exists, err := store.Exists(context.Background(), descriptor)
 	if err != nil {
@@ -132,9 +130,6 @@ func TestValidatingStoreAcceptsOnlyMatchingBlob(t *testing.T) {
 	}
 	if !exists {
 		t.Fatal("validatingStore.Exists() rejected a valid blob")
-	}
-	if _, ok := store.validated[descriptor.Digest.String()]; !ok {
-		t.Fatal("validatingStore.Exists() did not record the validated blob")
 	}
 }
 

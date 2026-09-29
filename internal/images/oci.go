@@ -136,9 +136,7 @@ type pullProgress struct {
 // Corrupt CAS files are removed so ORAS can fetch a clean copy before any reference is tagged.
 type validatingStore struct {
 	*oci.Store
-	validated map[string]struct{}
-	root      string
-	mutex     sync.Mutex
+	root string
 }
 
 // Exists validates an existing blob and reports a corrupt blob
@@ -152,9 +150,6 @@ func (s *validatingStore) Exists(ctx context.Context, descriptor ocispec.Descrip
 	}
 
 	if err := validateDescriptorBlob(s.root, descriptor); err == nil {
-		s.mutex.Lock()
-		s.validated[descriptor.Digest.String()] = struct{}{}
-		s.mutex.Unlock()
 		return true, nil
 	} else if errors.Is(err, fs.ErrNotExist) {
 		return false, nil
@@ -596,22 +591,18 @@ func pull(ctx context.Context, source string, options PullOptions) (ocispec.Desc
 	}
 
 	var destinationStore oras.Target
-	var localStore *oci.Store
-	var validated *validatingStore
 	if options.Target != nil {
 		destinationStore = options.Target
 	} else {
-		localStore, err = oci.New(options.Root)
+		localStore, err := oci.New(options.Root)
 		if err != nil {
 			return ocispec.Descriptor{}, fmt.Errorf("open OCI image layout: %w", err)
 		}
 
-		validated = &validatingStore{
-			Store:     localStore,
-			root:      options.Root,
-			validated: make(map[string]struct{}),
+		destinationStore = &validatingStore{
+			Store: localStore,
+			root:  options.Root,
 		}
-		destinationStore = validated
 	}
 
 	// Copy transfers the complete manifest DAG from the pinned root.
@@ -634,14 +625,6 @@ func pull(ctx context.Context, source string, options PullOptions) (ocispec.Desc
 	}
 	if err := tagAliases(ctx, tagger, descriptor, options.Aliases); err != nil {
 		return ocispec.Descriptor{}, fmt.Errorf("tag image aliases for %q: %w", source, err)
-	}
-
-	if options.Progress != nil && localStore != nil {
-		graphProgress, err := inspectGraph(options.Root, descriptor, validated.validated)
-		if err != nil {
-			return ocispec.Descriptor{}, fmt.Errorf("inspect saved image %q: %w", source, err)
-		}
-		options.Progress(graphProgress)
 	}
 
 	return descriptor, nil
@@ -691,22 +674,18 @@ func pullPlatforms(
 	}
 
 	var destinationStore oras.Target
-	var localStore *oci.Store
-	var validated *validatingStore
 	if options.Target != nil {
 		destinationStore = options.Target
 	} else {
-		localStore, err = oci.New(options.Root)
+		localStore, err := oci.New(options.Root)
 		if err != nil {
 			return ocispec.Descriptor{}, nil, fmt.Errorf("open OCI image layout: %w", err)
 		}
 
-		validated = &validatingStore{
-			Store:     localStore,
-			root:      options.Root,
-			validated: make(map[string]struct{}),
+		destinationStore = &validatingStore{
+			Store: localStore,
+			root:  options.Root,
 		}
-		destinationStore = validated
 	}
 
 	untagger, ok := destinationStore.(content.Untagger)
@@ -771,14 +750,6 @@ func pullPlatforms(
 	}
 	if err := tagAliases(ctx, tagger, indexDescriptor, options.Aliases); err != nil {
 		return ocispec.Descriptor{}, warnings, fmt.Errorf("tag image aliases for %q: %w", source, err)
-	}
-
-	if options.Progress != nil && localStore != nil {
-		graphProgress, err := inspectGraph(options.Root, indexDescriptor, validated.validated)
-		if err != nil {
-			return ocispec.Descriptor{}, warnings, fmt.Errorf("inspect saved image %q: %w", source, err)
-		}
-		options.Progress(graphProgress)
 	}
 
 	return indexDescriptor, warnings, nil
