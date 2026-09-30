@@ -261,6 +261,15 @@ This prevents two restores from writing to the same PVC at the same time,
 but it does not stop workload Pods.
 The PVC usage check is still performed separately.
 
+> [!WARNING]
+> `fsGroup` in the Pod `securityContext` can change permissions after restore:
+> when the PVC is mounted, Kubernetes or the CSI driver
+> may add group write permission and the setgid bit,
+> for example changing `2755` to `2775`.
+> If exact permission bits must be preserved,
+> do not set `fsGroup` for the workload,
+> or account for this change when checking the restored PVC.
+
 The default `empty-only` policy refuses to write to a non-empty target PVC.
 Choose `merge` or `replace` explicitly when needed:
 

@@ -241,6 +241,13 @@ kube-dump pvc restore dir ./backup \
 这会阻止两个 restore 同时写入同一个 PVC，但不会停止工作负载 Pod。
 PVC 使用状态仍会单独检查。
 
+> [!WARNING]
+> Pod 的 `securityContext` 中的 `fsGroup` 可能在恢复后改变权限：
+> 挂载 PVC 时，Kubernetes 或 CSI 驱动可能为组添加写权限和 setgid 位，
+> 例如将 `2755` 改为 `2775`。
+> 如果必须逐位保留权限，请不要为工作负载设置 `fsGroup`，
+> 或在检查恢复的 PVC 时考虑这一变化。
+
 默认的 `empty-only` 策略拒绝写入非空目标 PVC。需要时显式选择 `merge` 或 `replace`：
 
 ```shell
