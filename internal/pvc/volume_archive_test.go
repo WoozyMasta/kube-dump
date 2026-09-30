@@ -217,6 +217,62 @@ func TestVolumeAgentRestoresModesAndMtimes(t *testing.T) {
 	}
 }
 
+func TestVolumeAgentRoundTripsPermissionMatrix(t *testing.T) {
+	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("Unix special permission bits are unavailable on Windows")
+	}
+
+	type fixture struct {
+		name string
+		mode os.FileMode
+		dir  bool
+	}
+	fixtures := []fixture{
+		{name: "directory-plain", mode: 0o755, dir: true},
+		{name: "directory-setgid", mode: 0o2755, dir: true},
+		{name: "directory-sticky", mode: 0o1755, dir: true},
+		{name: "file-plain", mode: 0o640},
+		{name: "file-setuid", mode: 0o4755},
+		{name: "file-setgid", mode: 0o2755},
+	}
+
+	source := t.TempDir()
+	for _, item := range fixtures {
+		path := filepath.Join(source, item.name)
+		if item.dir {
+			if err := os.Mkdir(path, item.mode.Perm()); err != nil {
+				t.Fatal(err)
+			}
+		} else if err := os.WriteFile(path, []byte(item.name), item.mode.Perm()); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chmod(path, item.mode); err != nil {
+			t.Fatalf("chmod %s: %v", item.name, err)
+		}
+	}
+
+	var archive bytes.Buffer
+	if err := ExportVolume(context.Background(), source, &archive); err != nil {
+		t.Fatalf("ExportVolume() error = %v", err)
+	}
+
+	destination := t.TempDir()
+	if err := ImportVolume(context.Background(), destination, &archive, ExistingEmptyOnly); err != nil {
+		t.Fatalf("ImportVolume() error = %v", err)
+	}
+
+	for _, item := range fixtures {
+		info, err := os.Stat(filepath.Join(destination, item.name))
+		if err != nil {
+			t.Fatalf("stat restored %s: %v", item.name, err)
+		}
+		if got := info.Mode() & 0o7777; got != item.mode {
+			t.Errorf("restored %s mode = %o, want %o", item.name, got, item.mode)
+		}
+	}
+}
+
 func TestVolumeAgentRejectsHardLinks(t *testing.T) {
 	t.Parallel()
 	source := t.TempDir()

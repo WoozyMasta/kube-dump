@@ -18,6 +18,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -68,6 +69,7 @@ func TestPVCDataRestoreAgainstKind(t *testing.T) {
 	source := createPVCFixture(t, environment)
 	target := createEmptyPVCFixture(t, environment, "restore-target")
 	destination := filepath.Join(environment.root, "pvc-restore-source")
+	seedPVCPermissionMatrix(t, environment, source.hostPath)
 
 	environment.mustRunKubeCLI(t, "save PVC restore source",
 		"pvc", "save", "dir", destination,
@@ -96,6 +98,12 @@ func TestPVCDataRestoreAgainstKind(t *testing.T) {
 	if strings.TrimSpace(result.Stdout) != "kube-dump integration" {
 		t.Fatalf("unexpected restored PVC data: %q", result.Stdout)
 	}
+	assertPVCMode(t, environment, target.hostPath+"/permissions/directory-plain", 0o755)
+	assertPVCMode(t, environment, target.hostPath+"/permissions/directory-setgid", 0o2755)
+	assertPVCMode(t, environment, target.hostPath+"/permissions/directory-sticky", 0o1755)
+	assertPVCMode(t, environment, target.hostPath+"/permissions/file-plain", 0o640)
+	assertPVCMode(t, environment, target.hostPath+"/permissions/file-setuid", 0o4755)
+	assertPVCMode(t, environment, target.hostPath+"/permissions/file-setgid", 0o2755)
 }
 
 // TestPVCEncryptedDataSaveAndExtractAgainstKind verifies age encryption of the complete PVC payload,
@@ -553,6 +561,54 @@ chown -R 65532:65532 '%[1]s/private'`, hostPath)
 	}
 
 	return fixture
+}
+
+// seedPVCPermissionMatrix creates Unix permission and special-bit fixtures on a PVC.
+func seedPVCPermissionMatrix(t *testing.T, environment *integrationEnvironment, hostPath string) {
+	t.Helper()
+
+	root := hostPath + "/permissions"
+	seedCommand := fmt.Sprintf(`set -eu
+mkdir -p '%[1]s/directory-plain' '%[1]s/directory-setgid' '%[1]s/directory-sticky'
+printf 'plain\n' > '%[1]s/file-plain'
+printf 'setuid\n' > '%[1]s/file-setuid'
+printf 'setgid\n' > '%[1]s/file-setgid'
+chmod 0755 '%[1]s/directory-plain'
+chmod 2755 '%[1]s/directory-setgid'
+chmod 1755 '%[1]s/directory-sticky'
+chmod 0640 '%[1]s/file-plain'
+chmod 4755 '%[1]s/file-setuid'
+chmod 2755 '%[1]s/file-setgid'`, root)
+	result := environment.runtime.exec(
+		context.Background(),
+		environment.cluster+"-control-plane",
+		"sh", "-c", seedCommand,
+	)
+	if result.Err != nil {
+		fatalCommand(t, "seed PVC permission matrix", result)
+	}
+}
+
+// assertPVCMode reads a mode from the kind node filesystem after restore.
+func assertPVCMode(t *testing.T, environment *integrationEnvironment, path string, want os.FileMode) {
+	t.Helper()
+
+	result := environment.runtime.exec(
+		context.Background(),
+		environment.cluster+"-control-plane",
+		"stat", "-c", "%a", path,
+	)
+	if result.Err != nil {
+		fatalCommand(t, "read restored PVC mode", result)
+	}
+
+	got, err := strconv.ParseUint(strings.TrimSpace(result.Stdout), 8, 32)
+	if err != nil {
+		t.Fatalf("parse restored mode for %q: %v", path, err)
+	}
+	if os.FileMode(got) != want {
+		t.Fatalf("restored mode for %q = %o, want %o", path, got, want)
+	}
 }
 
 // createBoundaryPVCFixture creates two bound claims in one namespace
