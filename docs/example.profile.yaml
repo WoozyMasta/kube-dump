@@ -1,20 +1,16 @@
-# yaml-language-server: $schema=https://raw.githubusercontent.com/woozymasta/kube-dump/HEAD/pkg/profile/schema/profile.schema.json
-
 # APIVersion identifies the profile contract version.
-# Example: kube-dump/v2
+#
 # Allowed values: kube-dump/v2
 apiVersion: kube-dump/v2
 # Kind identifies the document as a kube-dump profile.
-# Example: Profile
+#
 # Allowed values: Profile
 kind: Profile
 # Metadata gives the profile its catalog name and user-facing description.
 metadata:
   # Name is the lowercase alias used with --profile and profile commands.
-  # Example: clean-export
   name: clean-export
   # Description is a concise user-facing explanation of the profile's purpose.
-  # Example: Clean export suitable for sharing or redeployment
   description: Clean export suitable for sharing or redeployment
 # Resources defines which Kubernetes API objects are collected
 # and how they are normalized before serialization.
@@ -46,14 +42,14 @@ resources:
     # LabelSelector filters objects by Kubernetes label-selector semantics.
     labelSelector:
       # MatchLabels requires exact key/value pairs.
-      matchLabels: {}
+      matchLabels:
+        example: <string>
       # MatchExpressions supports membership and key-existence operators.
       matchExpressions:
         - # Key is the label or annotation key to test.
-          # Example: environment
           key: environment
           # Operator determines how Key and Values are evaluated.
-          # Example: In
+          #
           # Allowed values: In, NotIn, Exists, DoesNotExist
           operator: In
           # Values contains operands for In and NotIn operators.
@@ -63,14 +59,14 @@ resources:
     # and conjunction semantics as LabelSelector, applied to annotations.
     annotationSelector:
       # MatchLabels requires exact annotation key/value pairs.
-      matchLabels: {}
+      matchLabels:
+        example: <string>
       # MatchExpressions supports membership and key-existence operators.
       matchExpressions:
         - # Key is the label or annotation key to test.
-          # Example: environment
           key: environment
           # Operator determines how Key and Values are evaluated.
-          # Example: In
+          #
           # Allowed values: In, NotIn, Exists, DoesNotExist
           operator: In
           # Values contains operands for In and NotIn operators.
@@ -80,7 +76,6 @@ resources:
   # When omitted or empty, no fields are removed or encrypted.
   rules:
     - # Name labels the rule in validation errors and diagnostics.
-      # Example: remove-runtime-metadata
       name: remove-runtime-metadata
       # Match selects the objects affected by this rule; all populated match fields must pass.
       match:
@@ -103,14 +98,14 @@ resources:
         # LabelSelector filters objects by Kubernetes label-selector semantics.
         labelSelector:
           # MatchLabels requires exact key/value pairs.
-          matchLabels: {}
+          matchLabels:
+            example: <string>
           # MatchExpressions supports membership and key-existence operators.
           matchExpressions:
             - # Key is the label or annotation key to test.
-              # Example: environment
               key: environment
               # Operator determines how Key and Values are evaluated.
-              # Example: In
+              #
               # Allowed values: In, NotIn, Exists, DoesNotExist
               operator: In
               # Values contains operands for In and NotIn operators.
@@ -120,14 +115,14 @@ resources:
         # and conjunction semantics as LabelSelector, applied to annotations.
         annotationSelector:
           # MatchLabels requires exact annotation key/value pairs.
-          matchLabels: {}
+          matchLabels:
+            example: <string>
           # MatchExpressions supports membership and key-existence operators.
           matchExpressions:
             - # Key is the label or annotation key to test.
-              # Example: environment
               key: environment
               # Operator determines how Key and Values are evaluated.
-              # Example: In
+              #
               # Allowed values: In, NotIn, Exists, DoesNotExist
               operator: In
               # Values contains operands for In and NotIn operators.
@@ -136,6 +131,59 @@ resources:
       # Remove lists dot/bracket field paths deleted before serialization.
       remove:
         - .metadata.creationTimestamp
+    - # Name labels the rule in validation errors and diagnostics.
+      name: remove-runtime-metadata
+      # Match selects the objects affected by this rule; all populated match fields must pass.
+      match:
+        # Resources restricts the rule to `group/version/resource[:name]` expressions.
+        resources:
+          - core/v1/secrets
+          - apps/v1/deployments:api
+        # Namespaces limits objects to namespace names matching shell-style globs.
+        # A leading `!` excludes matching namespaces; an empty list matches every namespace.
+        # Quote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.
+        namespaces:
+          - production
+          - '!kube-*'
+        # Names limits objects to names matching shell-style globs.
+        # A leading `!` excludes matching names; an empty list matches every name.
+        # Quote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.
+        names:
+          - api-*
+          - '!api-temporary-*'
+        # LabelSelector filters objects by Kubernetes label-selector semantics.
+        labelSelector:
+          # MatchLabels requires exact key/value pairs.
+          matchLabels:
+            example: <string>
+          # MatchExpressions supports membership and key-existence operators.
+          matchExpressions:
+            - # Key is the label or annotation key to test.
+              key: environment
+              # Operator determines how Key and Values are evaluated.
+              #
+              # Allowed values: In, NotIn, Exists, DoesNotExist
+              operator: In
+              # Values contains operands for In and NotIn operators.
+              values:
+                - prod
+        # AnnotationSelector filters objects by the same operators
+        # and conjunction semantics as LabelSelector, applied to annotations.
+        annotationSelector:
+          # MatchLabels requires exact annotation key/value pairs.
+          matchLabels:
+            example: <string>
+          # MatchExpressions supports membership and key-existence operators.
+          matchExpressions:
+            - # Key is the label or annotation key to test.
+              key: environment
+              # Operator determines how Key and Values are evaluated.
+              #
+              # Allowed values: In, NotIn, Exists, DoesNotExist
+              operator: In
+              # Values contains operands for In and NotIn operators.
+              values:
+                - prod
       # Encrypt lists dot/bracket field paths protected when runtime encryption is configured.
       # Without recipients or an AES-SIV keyring, the selected fields remain plaintext.
       encrypt:
@@ -160,14 +208,14 @@ pvc:
     # LabelSelector filters objects by Kubernetes label-selector semantics.
     labelSelector:
       # MatchLabels requires exact key/value pairs.
-      matchLabels: {}
+      matchLabels:
+        example: <string>
       # MatchExpressions supports membership and key-existence operators.
       matchExpressions:
         - # Key is the label or annotation key to test.
-          # Example: environment
           key: environment
           # Operator determines how Key and Values are evaluated.
-          # Example: In
+          #
           # Allowed values: In, NotIn, Exists, DoesNotExist
           operator: In
           # Values contains operands for In and NotIn operators.
@@ -177,14 +225,14 @@ pvc:
     # and conjunction semantics as LabelSelector, applied to annotations.
     annotationSelector:
       # MatchLabels requires exact annotation key/value pairs.
-      matchLabels: {}
+      matchLabels:
+        example: <string>
       # MatchExpressions supports membership and key-existence operators.
       matchExpressions:
         - # Key is the label or annotation key to test.
-          # Example: environment
           key: environment
           # Operator determines how Key and Values are evaluated.
-          # Example: In
+          #
           # Allowed values: In, NotIn, Exists, DoesNotExist
           operator: In
           # Values contains operands for In and NotIn operators.
@@ -230,14 +278,14 @@ images:
       # LabelSelector filters objects by Kubernetes label-selector semantics.
       labelSelector:
         # MatchLabels requires exact key/value pairs.
-        matchLabels: {}
+        matchLabels:
+          example: <string>
         # MatchExpressions supports membership and key-existence operators.
         matchExpressions:
           - # Key is the label or annotation key to test.
-            # Example: environment
             key: environment
             # Operator determines how Key and Values are evaluated.
-            # Example: In
+            #
             # Allowed values: In, NotIn, Exists, DoesNotExist
             operator: In
             # Values contains operands for In and NotIn operators.
@@ -247,14 +295,14 @@ images:
       # and conjunction semantics as LabelSelector, applied to annotations.
       annotationSelector:
         # MatchLabels requires exact annotation key/value pairs.
-        matchLabels: {}
+        matchLabels:
+          example: <string>
         # MatchExpressions supports membership and key-existence operators.
         matchExpressions:
           - # Key is the label or annotation key to test.
-            # Example: environment
             key: environment
             # Operator determines how Key and Values are evaluated.
-            # Example: In
+            #
             # Allowed values: In, NotIn, Exists, DoesNotExist
             operator: In
             # Values contains operands for In and NotIn operators.
@@ -267,14 +315,14 @@ images:
     # LabelSelector filters objects by Kubernetes label-selector semantics.
     labelSelector:
       # MatchLabels requires exact key/value pairs.
-      matchLabels: {}
+      matchLabels:
+        example: <string>
       # MatchExpressions supports membership and key-existence operators.
       matchExpressions:
         - # Key is the label or annotation key to test.
-          # Example: environment
           key: environment
           # Operator determines how Key and Values are evaluated.
-          # Example: In
+          #
           # Allowed values: In, NotIn, Exists, DoesNotExist
           operator: In
           # Values contains operands for In and NotIn operators.
@@ -284,14 +332,14 @@ images:
     # and conjunction semantics as LabelSelector, applied to annotations.
     annotationSelector:
       # MatchLabels requires exact annotation key/value pairs.
-      matchLabels: {}
+      matchLabels:
+        example: <string>
       # MatchExpressions supports membership and key-existence operators.
       matchExpressions:
         - # Key is the label or annotation key to test.
-          # Example: environment
           key: environment
           # Operator determines how Key and Values are evaluated.
-          # Example: In
+          #
           # Allowed values: In, NotIn, Exists, DoesNotExist
           operator: In
           # Values contains operands for In and NotIn operators.
@@ -301,10 +349,8 @@ images:
     # Multiple entries are combined with OR semantics.
     references:
       - # Registry is the registry host glob, for example docker.io or ghcr.io.
-        # Example: docker.io
         registry: docker.io
         # Repository is the repository path glob without the registry or tag.
-        # Example: library/*
         repository: library/*
         # Tags accepts image tags matching at least one shell-style glob pattern.
         # An empty list accepts tagged and digest-pinned references.

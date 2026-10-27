@@ -64,7 +64,7 @@
           "x-order": "20"
         },
         "tags": {
-          "description": "Tags accepts image tags matching at least one shell-style glob pattern.\nAn empty list accepts tagged and digest-pinned references.",
+          "description": "Tags accepts image tags matching at least one shell-style glob pattern. An empty list accepts tagged and digest-pinned references.",
           "items": {
             "examples": [
               "MR-*",
@@ -92,7 +92,7 @@
       "properties": {
         "annotationSelector": {
           "$ref": "#/$defs/AnnotationSelector",
-          "description": "AnnotationSelector filters objects by the same operators\nand conjunction semantics as LabelSelector, applied to annotations.",
+          "description": "AnnotationSelector filters objects by the same operators and conjunction semantics as LabelSelector, applied to annotations.",
           "x-order": "40"
         },
         "containerTypes": {
@@ -119,7 +119,7 @@
           "x-order": "30"
         },
         "names": {
-          "description": "Names limits objects to names matching shell-style globs.\nA leading `!` excludes matching names; an empty list matches every name.\nQuote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
+          "description": "Names limits objects to names matching shell-style globs. A leading `!` excludes matching names; an empty list matches every name. Quote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
           "items": {
             "examples": [
               "api-*",
@@ -135,7 +135,7 @@
           "x-order": "20"
         },
         "namespaces": {
-          "description": "Namespaces limits objects to namespace names matching shell-style globs.\nA leading `!` excludes matching namespaces; an empty list matches every namespace.\nQuote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
+          "description": "Namespaces limits objects to namespace names matching shell-style globs. A leading `!` excludes matching namespaces; an empty list matches every namespace. Quote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
           "items": {
             "examples": [
               "production",
@@ -152,11 +152,11 @@
         },
         "owners": {
           "$ref": "#/$defs/OwnerSelectionSpec",
-          "description": "Owners selects objects in the ownerReference chain of a selected Pod.\nA Pod is included only when at least one owner matches all configured owner filters.\nUse Resources to distinguish Deployments, DaemonSets, StatefulSets, Jobs, and other Kubernetes owner objects.",
+          "description": "Owners selects objects in the ownerReference chain of a selected Pod. A Pod is included only when at least one owner matches all configured owner filters. Use Resources to distinguish Deployments, DaemonSets, StatefulSets, Jobs, and other Kubernetes owner objects.",
           "x-order": "20"
         },
         "references": {
-          "description": "References selects images by registry, repository, and optional tag globs.\nMultiple entries are combined with OR semantics.",
+          "description": "References selects images by registry, repository, and optional tag globs. Multiple entries are combined with OR semantics.",
           "items": {
             "$ref": "#/$defs/ImageReferenceSpec"
           },
@@ -174,7 +174,7 @@
       "properties": {
         "annotationSelector": {
           "$ref": "#/$defs/AnnotationSelector",
-          "description": "AnnotationSelector filters objects by the same operators\nand conjunction semantics as LabelSelector, applied to annotations.",
+          "description": "AnnotationSelector filters objects by the same operators and conjunction semantics as LabelSelector, applied to annotations.",
           "x-order": "40"
         },
         "labelSelector": {
@@ -183,7 +183,7 @@
           "x-order": "30"
         },
         "names": {
-          "description": "Names limits objects to names matching shell-style globs.\nA leading `!` excludes matching names; an empty list matches every name.\nQuote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
+          "description": "Names limits objects to names matching shell-style globs. A leading `!` excludes matching names; an empty list matches every name. Quote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
           "items": {
             "examples": [
               "api-*",
@@ -199,7 +199,7 @@
           "x-order": "20"
         },
         "namespaces": {
-          "description": "Namespaces limits objects to namespace names matching shell-style globs.\nA leading `!` excludes matching namespaces; an empty list matches every namespace.\nQuote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
+          "description": "Namespaces limits objects to namespace names matching shell-style globs. A leading `!` excludes matching namespaces; an empty list matches every namespace. Quote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
           "items": {
             "examples": [
               "production",
@@ -271,7 +271,7 @@
       "properties": {
         "annotationSelector": {
           "$ref": "#/$defs/AnnotationSelector",
-          "description": "AnnotationSelector filters objects by the same operators\nand conjunction semantics as LabelSelector, applied to annotations.",
+          "description": "AnnotationSelector filters objects by the same operators and conjunction semantics as LabelSelector, applied to annotations.",
           "x-order": "40"
         },
         "labelSelector": {
@@ -280,7 +280,7 @@
           "x-order": "30"
         },
         "names": {
-          "description": "Names limits objects to names matching shell-style globs.\nA leading `!` excludes matching names; an empty list matches every name.\nQuote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
+          "description": "Names limits objects to names matching shell-style globs. A leading `!` excludes matching names; an empty list matches every name. Quote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
           "items": {
             "examples": [
               "api-*",
@@ -296,7 +296,7 @@
           "x-order": "20"
         },
         "namespaces": {
-          "description": "Namespaces limits objects to namespace names matching shell-style globs.\nA leading `!` excludes matching namespaces; an empty list matches every namespace.\nQuote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
+          "description": "Namespaces limits objects to namespace names matching shell-style globs. A leading `!` excludes matching namespaces; an empty list matches every namespace. Quote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
           "items": {
             "examples": [
               "production",
@@ -312,7 +312,7 @@
           "x-order": "10"
         },
         "resources": {
-          "description": "Resources limits matching owners to Kubernetes resource identities such as `apps/v1/deployments` or `apps/v1/daemonsets`.\nAn empty list accepts any owner in the Pod's ownerReference chain.",
+          "description": "Resources limits matching owners to Kubernetes resource identities such as `apps/v1/deployments` or `apps/v1/daemonsets`. An empty list accepts any owner in the Pod's ownerReference chain.",
           "items": {
             "examples": [
               "apps/v1/deployments"
@@ -349,7 +349,7 @@
       "properties": {
         "annotationSelector": {
           "$ref": "#/$defs/AnnotationSelector",
-          "description": "AnnotationSelector filters objects by the same operators\nand conjunction semantics as LabelSelector, applied to annotations.",
+          "description": "AnnotationSelector filters objects by the same operators and conjunction semantics as LabelSelector, applied to annotations.",
           "x-order": "40"
         },
         "labelSelector": {
@@ -358,7 +358,7 @@
           "x-order": "30"
         },
         "names": {
-          "description": "Names limits objects to names matching shell-style globs.\nA leading `!` excludes matching names; an empty list matches every name.\nQuote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
+          "description": "Names limits objects to names matching shell-style globs. A leading `!` excludes matching names; an empty list matches every name. Quote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
           "items": {
             "examples": [
               "api-*",
@@ -374,7 +374,7 @@
           "x-order": "20"
         },
         "namespaces": {
-          "description": "Namespaces limits objects to namespace names matching shell-style globs.\nA leading `!` excludes matching namespaces; an empty list matches every namespace.\nQuote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
+          "description": "Namespaces limits objects to namespace names matching shell-style globs. A leading `!` excludes matching namespaces; an empty list matches every namespace. Quote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
           "items": {
             "examples": [
               "production",
@@ -409,7 +409,7 @@
         },
         "images": {
           "$ref": "#/$defs/ImagePolicy",
-          "description": "Images defines optional Pod metadata, container, and image-reference filters.\nAn empty selection includes every image allowed by runtime flags.",
+          "description": "Images defines optional Pod metadata, container, and image-reference filters. An empty selection includes every image allowed by runtime flags.",
           "x-order": "60"
         },
         "kind": {
@@ -430,12 +430,12 @@
         },
         "pvc": {
           "$ref": "#/$defs/PVCPolicy",
-          "description": "PVC defines optional namespace, metadata, and name filters for PVC data.\nAn empty selection includes every PVC allowed by runtime flags.",
+          "description": "PVC defines optional namespace, metadata, and name filters for PVC data. An empty selection includes every PVC allowed by runtime flags.",
           "x-order": "50"
         },
         "resources": {
           "$ref": "#/$defs/ResourcePolicy",
-          "description": "Resources defines which Kubernetes API objects are collected\nand how they are normalized before serialization.",
+          "description": "Resources defines which Kubernetes API objects are collected and how they are normalized before serialization.",
           "x-order": "40"
         }
       },
@@ -452,12 +452,12 @@
       "description": "ResourcePolicy describes API-object selection and ordered object transforms.",
       "properties": {
         "omitEmpty": {
-          "description": "OmitEmpty removes null values and empty maps or lists from resource objects before serialization.\nZero values, false values, and empty strings are kept.",
+          "description": "OmitEmpty removes null values and empty maps or lists from resource objects before serialization. Zero values, false values, and empty strings are kept.",
           "type": "boolean",
           "x-order": "5"
         },
         "rules": {
-          "description": "Rules are evaluated in declaration order after selection.\nWhen omitted or empty, no fields are removed or encrypted.",
+          "description": "Rules are evaluated in declaration order after selection. When omitted or empty, no fields are removed or encrypted.",
           "items": {
             "$ref": "#/$defs/RuleSpec"
           },
@@ -467,7 +467,7 @@
         },
         "selection": {
           "$ref": "#/$defs/ResourceSelectionSpec",
-          "description": "Selection defines the initial set of API objects admitted by the profile.\nWhen omitted or empty, all discovered resources are included.",
+          "description": "Selection defines the initial set of API objects admitted by the profile. When omitted or empty, all discovered resources are included.",
           "x-order": "10"
         }
       },
@@ -479,7 +479,7 @@
       "properties": {
         "annotationSelector": {
           "$ref": "#/$defs/AnnotationSelector",
-          "description": "AnnotationSelector filters objects by the same operators\nand conjunction semantics as LabelSelector, applied to annotations.",
+          "description": "AnnotationSelector filters objects by the same operators and conjunction semantics as LabelSelector, applied to annotations.",
           "x-order": "40"
         },
         "labelSelector": {
@@ -488,7 +488,7 @@
           "x-order": "30"
         },
         "names": {
-          "description": "Names limits objects to names matching shell-style globs.\nA leading `!` excludes matching names; an empty list matches every name.\nQuote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
+          "description": "Names limits objects to names matching shell-style globs. A leading `!` excludes matching names; an empty list matches every name. Quote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
           "items": {
             "examples": [
               "api-*",
@@ -504,7 +504,7 @@
           "x-order": "20"
         },
         "namespaces": {
-          "description": "Namespaces limits objects to namespace names matching shell-style globs.\nA leading `!` excludes matching namespaces; an empty list matches every namespace.\nQuote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
+          "description": "Namespaces limits objects to namespace names matching shell-style globs. A leading `!` excludes matching namespaces; an empty list matches every namespace. Quote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
           "items": {
             "examples": [
               "production",
@@ -520,7 +520,7 @@
           "x-order": "10"
         },
         "resources": {
-          "description": "Resources is an ordered list of `group/version/resource[:name]` expressions.\nA leading `!` excludes matching resources or a specific object name.\nQuote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
+          "description": "Resources is an ordered list of `group/version/resource[:name]` expressions. A leading `!` excludes matching resources or a specific object name. Quote values beginning with `!` in YAML because `!` otherwise starts a YAML tag.",
           "items": {
             "examples": [
               "core/v1/configmaps",
@@ -557,7 +557,7 @@
       ],
       "properties": {
         "encrypt": {
-          "description": "Encrypt lists dot/bracket field paths protected when runtime encryption is configured.\nWithout recipients or an AES-SIV keyring, the selected fields remain plaintext.",
+          "description": "Encrypt lists dot/bracket field paths protected when runtime encryption is configured. Without recipients or an AES-SIV keyring, the selected fields remain plaintext.",
           "items": {
             "examples": [
               ".data.*"

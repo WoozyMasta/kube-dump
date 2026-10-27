@@ -1,16 +1,11 @@
 GO                ?= go
 
 LINTER            ?= golangci-lint
-LINTER_VERSION    ?= v2.13.2
 ALIGNER           ?= betteralign
-ALIGNER_VERSION   ?= v0.15.1
 VULNCHECK         ?= govulncheck
-VULNCHECK_VERSION ?= v1.8.0
 SCHEMADOC         ?= schemadoc
-SCHEMADOC_VERSION ?= v0.7.1
 SCHEMADOC_CONFIG  ?= schemadoc.yaml
 WINRES            ?= go-winres
-WINRES_VERSION    ?= v0.3.3
 BENCHSTAT         ?= benchstat
 RUMDL             ?= rumdl
 
@@ -255,19 +250,19 @@ tools-ci: tool-golangci-lint tool-betteralign tool-govulncheck
 tools-build: tool-schemadoc tool-winres
 
 tool-golangci-lint:
-	$(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(LINTER_VERSION)
+	$(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$latest
 
 tool-betteralign:
-	$(GO) install github.com/dkorunic/betteralign/cmd/betteralign@$(ALIGNER_VERSION)
+	$(GO) install github.com/dkorunic/betteralign/cmd/betteralign@latest
 
 tool-govulncheck:
-	$(GO) install golang.org/x/vuln/cmd/govulncheck@$(VULNCHECK_VERSION)
+	$(GO) install golang.org/x/vuln/cmd/govulncheck@latest
 
 tool-schemadoc:
-	$(GO) install github.com/woozymasta/schemadoc/cmd/schemadoc@$(SCHEMADOC_VERSION)
+	$(GO) install github.com/woozymasta/schemadoc/cmd/schemadoc@latest
 
 tool-winres:
-	$(GO) install github.com/tc-hib/go-winres@$(WINRES_VERSION)
+	$(GO) install github.com/tc-hib/go-winres@latest
 
 tool-benchstat:
 	$(GO) install golang.org/x/perf/cmd/benchstat@latest
