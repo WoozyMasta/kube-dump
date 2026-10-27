@@ -53,7 +53,6 @@ Profiles control resource selection and cleanup; encryption is applied only when
 
 |Option|Description|Required|
 |---|---|---|
-|`-?`|Show this help message|no|
 |`-h`, `--help`|Show this help message|no|
 |`-v`, `--version`|Show version information|no|
 
@@ -109,7 +108,7 @@ Discover images referenced by selected Pods, save them as OCI Image Layouts, ins
 
 #### Examples
 
-```text
+```shell
 kube-dump image save dir ./backup
 ```
 
@@ -134,7 +133,7 @@ Download an OCI Image Layout from S3 into a local directory.
 
 #### Examples
 
-```text
+```shell
 kube-dump image download s3 ./backup --s3-uri s3://bucket/backup
 ```
 
@@ -173,7 +172,7 @@ Show saved image references, manifests, platforms, blob counts, and sizes.
 
 #### Examples
 
-```text
+```shell
 kube-dump image inspect dir ./backup
 ```
 
@@ -218,7 +217,7 @@ Publish a saved OCI Image Layout to the requested registry prefix.
 
 #### Examples
 
-```text
+```shell
 kube-dump image push dir ./backup registry.example.com/recovered
 ```
 
@@ -272,7 +271,7 @@ Discover images used by selected Pods and save their OCI content-addressed data.
 
 #### Examples
 
-```text
+```shell
 kube-dump image save dir ./backup
 ```
 
@@ -348,7 +347,7 @@ The generate command creates only a native age X25519 identity. Rotate changes t
 
 #### Examples
 
-```text
+```shell
 kube-dump key generate
 ```
 
@@ -364,7 +363,7 @@ The private identity is written to standard output unless `--output` is specifie
 
 #### Examples
 
-```text
+```shell
 kube-dump key generate --output age-identity.txt
 ```
 
@@ -388,7 +387,7 @@ The DIRECTORY must contain `.kube-dump/crypto/metadata.yaml`. This command does 
 
 #### Examples
 
-```text
+```shell
 kube-dump key rewrap ./backup -i age-identity.txt -R age1example
 ```
 
@@ -424,7 +423,7 @@ The DIRECTORY must contain `.kube-dump/crypto/metadata.yaml`. Remote S3 objects 
 
 #### Examples
 
-```text
+```shell
 kube-dump key rotate ./backup -i age-identity.txt -R age1example
 ```
 
@@ -456,7 +455,7 @@ Profiles define which Kubernetes objects are captured and which generated or run
 
 #### Examples
 
-```text
+```shell
 kube-dump profile ls
 ```
 
@@ -543,7 +542,7 @@ Write the embedded JSON Schema used to validate profile files. The output is int
 
 #### Examples
 
-```text
+```shell
 kube-dump profile schema > profile.schema.json
 ```
 
@@ -593,7 +592,7 @@ Read PVC filesystems through Kubernetes, store each claim as a portable compress
 
 #### Examples
 
-```text
+```shell
 kube-dump pvc save dir ./pvc-data
 ```
 
@@ -618,7 +617,7 @@ Remove age encryption from a local PVC archive.
 
 #### Examples
 
-```text
+```shell
 kube-dump pvc decrypt backup.tar.zst.age backup.tar.zst
 ```
 
@@ -647,7 +646,7 @@ Copy PVC artifacts from an S3 prefix into a local artifact directory.
 
 #### Examples
 
-```text
+```shell
 kube-dump pvc download s3 ./pvc-data --s3-uri s3://bucket/cluster/pvc/
 ```
 
@@ -687,7 +686,7 @@ Wrap a local PVC archive with age and write it to another path.
 
 #### Examples
 
-```text
+```shell
 kube-dump pvc encrypt backup.tar.zst backup.tar.zst.age
 ```
 
@@ -717,7 +716,7 @@ Decrypt when necessary and restore the archive contents into a directory.
 
 #### Examples
 
-```text
+```shell
 kube-dump pvc extract backup.tar.zst ./pvc
 ```
 
@@ -746,7 +745,7 @@ Count PVC artifacts and report their stored size without extracting their conten
 
 #### Examples
 
-```text
+```shell
 kube-dump pvc inspect dir ./pvc-data
 ```
 
@@ -791,7 +790,7 @@ Restore one selected PVC artifact into an already created target PVC. The target
 
 #### Examples
 
-```text
+```shell
 kube-dump pvc restore dir ./pvc-data
 ```
 
@@ -805,7 +804,7 @@ Select a saved PVC artifact by source identity and revision, then stream its dec
 
 #### Examples
 
-```text
+```shell
 kube-dump pvc restore dir ./pvc-data --pvc production/postgres-data --target-pvc recovery/postgres-data
 ```
 
@@ -850,7 +849,7 @@ Restore a selected PVC artifact stored in S3. The decrypted and decompressed arc
 
 #### Examples
 
-```text
+```shell
 kube-dump pvc restore s3 --s3-uri s3://bucket/pvc --pvc production/postgres-data --target-pvc recovery/postgres-data
 ```
 
@@ -908,7 +907,7 @@ Read selected PVC filesystems through the configured strategy and store one comp
 
 #### Examples
 
-```text
+```shell
 kube-dump pvc save dir ./pvc-data
 ```
 
@@ -942,11 +941,11 @@ Capture PVC filesystems and store archives locally
 |`--image-pull-policy`|Pull policy for temporary PVC helper Pods; choices: `Always, IfNotPresent, Never`|`IfNotPresent`|`$KUBE_DUMP_IMAGE_PULL_POLICY`|no|
 |`--helper-binary-path`|Path to the volume agent inside the helper container; default: kube-dump from PATH, then /kube-dump||`$KUBE_DUMP_HELPER_BINARY_PATH`|no|
 |`--strategy`|PVC data acquisition strategy; choices: `pod, snapshot-copy`|`snapshot-copy`|`$KUBE_DUMP_STRATEGY`|no|
-|`--concurrency`|Maximum parallel PVC backup lifecycles|`4`|`$KUBE_DUMP_CONCURRENCY`|no|
 |`--snapshot-class`|VolumeSnapshotClass for snapshot-based strategies||`$KUBE_DUMP_SNAPSHOT_CLASS`|no|
 |`--compression`|Compression for portable PVC data; choices: `zstd, gzip`|`zstd`|`$KUBE_DUMP_COMPRESSION`|no|
 |`-n`, `--namespace`|Limit PVC data backup to these namespaces||`$KUBE_DUMP_NAMESPACE` (`,`)|no|
 |`--pvc`|PVC name or glob pattern; repeatable||`$KUBE_DUMP_PVC` (`,`)|no|
+|`--concurrency`|Maximum parallel PVC backup lifecycles|`4`|`$KUBE_DUMP_CONCURRENCY`|no|
 |`--max-size`|Skip an individual PVC above this size, for example 1GiB||`$KUBE_DUMP_MAX_SIZE`|no|
 |`--max-namespace-size`|Skip PVC data in a namespace above this total, for example 10GiB||`$KUBE_DUMP_MAX_NAMESPACE_SIZE`|no|
 |`--keep`|Keep this many latest artifacts for each PVC; 0 disables rotation|`5`|`$KUBE_DUMP_KEEP`|no|
@@ -1006,11 +1005,11 @@ Capture PVC filesystems and store archives in S3
 |`--image-pull-policy`|Pull policy for temporary PVC helper Pods; choices: `Always, IfNotPresent, Never`|`IfNotPresent`|`$KUBE_DUMP_IMAGE_PULL_POLICY`|no|
 |`--helper-binary-path`|Path to the volume agent inside the helper container; default: kube-dump from PATH, then /kube-dump||`$KUBE_DUMP_HELPER_BINARY_PATH`|no|
 |`--strategy`|PVC data acquisition strategy; choices: `pod, snapshot-copy`|`snapshot-copy`|`$KUBE_DUMP_STRATEGY`|no|
-|`--concurrency`|Maximum parallel PVC backup lifecycles|`4`|`$KUBE_DUMP_CONCURRENCY`|no|
 |`--snapshot-class`|VolumeSnapshotClass for snapshot-based strategies||`$KUBE_DUMP_SNAPSHOT_CLASS`|no|
 |`--compression`|Compression for portable PVC data; choices: `zstd, gzip`|`zstd`|`$KUBE_DUMP_COMPRESSION`|no|
 |`-n`, `--namespace`|Limit PVC data backup to these namespaces||`$KUBE_DUMP_NAMESPACE` (`,`)|no|
 |`--pvc`|PVC name or glob pattern; repeatable||`$KUBE_DUMP_PVC` (`,`)|no|
+|`--concurrency`|Maximum parallel PVC backup lifecycles|`4`|`$KUBE_DUMP_CONCURRENCY`|no|
 |`--max-size`|Skip an individual PVC above this size, for example 1GiB||`$KUBE_DUMP_MAX_SIZE`|no|
 |`--max-namespace-size`|Skip PVC data in a namespace above this total, for example 10GiB||`$KUBE_DUMP_MAX_NAMESPACE_SIZE`|no|
 |`--keep`|Keep this many latest artifacts for each PVC; 0 disables rotation|`5`|`$KUBE_DUMP_KEEP`|no|
@@ -1025,7 +1024,7 @@ Collect selected Kubernetes objects into a directory or archive, read them as YA
 
 #### Examples
 
-```text
+```shell
 kube-dump resource save dir ./backup
 ```
 
@@ -1050,7 +1049,7 @@ Read saved resource files or an archive, decode inline fields, and write Kuberne
 
 #### Examples
 
-```text
+```shell
 kube-dump resource cat dir ./backup | kubectl apply -f -
 ```
 
@@ -1178,7 +1177,7 @@ Decrypt inline resource fields or unwrap a local resource archive.
 
 #### Examples
 
-```text
+```shell
 kube-dump resource decrypt dir ./encrypted ./plain
 ```
 
@@ -1234,7 +1233,7 @@ Copy a resource dump from Git or S3, or copy an archive to a local path.
 
 #### Examples
 
-```text
+```shell
 kube-dump resource download s3 ./backup --s3-uri s3://bucket/backup
 ```
 
@@ -1343,7 +1342,7 @@ Encrypt inline resource fields or wrap a local resource archive with age.
 
 #### Examples
 
-```text
+```shell
 kube-dump resource encrypt dir ./plain ./encrypted
 ```
 
@@ -1409,7 +1408,7 @@ Decrypt and unpack a local or S3 resource archive into a directory.
 
 #### Examples
 
-```text
+```shell
 kube-dump resource extract archive backup.tar.zst ./backup
 ```
 
@@ -1477,7 +1476,7 @@ Summarize saved Kubernetes resource files and archives without applying them.
 
 #### Examples
 
-```text
+```shell
 kube-dump resource inspect dir ./backup
 ```
 
@@ -1589,7 +1588,7 @@ Collect selected Kubernetes objects, apply the selected profile, and write multi
 
 #### Examples
 
-```text
+```shell
 kube-dump resource save dir ./backup --profile backup
 ```
 
@@ -1777,7 +1776,7 @@ Collect selected Kubernetes objects, apply the selected profile, and write each 
 
 #### Examples
 
-```text
+```shell
 kube-dump resource save stdout --profile backup | kubectl apply -f -
 ```
 
