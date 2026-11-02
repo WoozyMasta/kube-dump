@@ -353,51 +353,22 @@ func (e *integrationEnvironment) prepareVolumeImage() (string, error) {
 		return configured, nil
 	}
 
-	goPath, err := lookupExecutable("go")
-	if err != nil {
-		return "", err
-	}
-	contextDirectory, err := os.MkdirTemp(e.root, "volume-image-")
-	if err != nil {
-		return "", fmt.Errorf("create volume image context: %w", err)
-	}
-
-	binary := filepath.Join(contextDirectory, "kube-dump")
 	buildContext, cancel := context.WithTimeout(context.Background(), integrationCommandTimeout)
 	defer cancel()
-	result := runCommand(
-		buildContext,
-		repositoryRoot(),
-		[]string{
-			"CGO_ENABLED=0",
-			"GOWORK=off",
-			"GOOS=linux",
-			"GOARCH=amd64",
-		},
-		goPath,
-		"build", "-trimpath", "-o", binary, "./cmd/kube-dump",
-	)
-	if result.Err != nil {
-		return "", fmt.Errorf("build Linux volume helper: %s\n%s", result.Command, formatCommandOutput(result))
-	}
-
-	dockerfile := filepath.Join(contextDirectory, "Dockerfile")
-	if err := os.WriteFile(
-		dockerfile,
-		[]byte(`FROM scratch
-COPY kube-dump /kube-dump
-USER 65532:65532
-ENTRYPOINT ["/kube-dump"]`),
-		0o600,
-	); err != nil {
-		return "", fmt.Errorf("write volume helper Dockerfile: %w", err)
-	}
 
 	// Avoid the implicit Always pull policy applied to images tagged latest.
 	// The image is loaded directly into kind,
 	// so a non-latest tag keeps the helper Pod local and makes the test independent of registry access.
 	tag := uniqueName("kube-dump-volume") + ":integration"
-	result = e.runtime.build(buildContext, contextDirectory, dockerfile, tag)
+	root := repositoryRoot()
+	result := e.runtime.build(
+		buildContext,
+		root,
+		filepath.Join(root, "Dockerfile"),
+		tag,
+		"--platform", "linux/amd64",
+		"--build-arg", "CONTAINER_IMAGE="+tag,
+	)
 	if result.Err != nil {
 		return "", fmt.Errorf("build volume helper image: %s\n%s", result.Command, formatCommandOutput(result))
 	}
@@ -474,17 +445,17 @@ func (r containerRuntime) build(
 	contextDirectory string,
 	dockerfile string,
 	tag string,
+	options ...string,
 ) commandResult {
-	return runCommand(
-		ctx,
-		contextDirectory,
-		nil,
-		r.path,
+	args := []string{
 		"build",
 		"--tag", tag,
 		"--file", dockerfile,
-		contextDirectory,
-	)
+	}
+	args = append(args, options...)
+	args = append(args, contextDirectory)
+
+	return runCommand(ctx, contextDirectory, nil, r.path, args...)
 }
 
 // exec runs a command in a test-owned container.
