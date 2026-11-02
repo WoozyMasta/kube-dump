@@ -100,6 +100,34 @@ func TestPVCUncompressedDataSaveAndExtractAgainstKind(t *testing.T) {
 	assertExtractedPVCData(t, extracted)
 }
 
+// TestPVCHelperCompressedDataSaveAndExtractAgainstKind verifies local capture
+// when the helper Pod compresses the stream before sending it through exec.
+func TestPVCHelperCompressedDataSaveAndExtractAgainstKind(t *testing.T) {
+	environment := newIntegrationEnvironment(t)
+	fixture := createPVCFixture(t, environment)
+	destination := filepath.Join(environment.root, "pvc-helper-compressed-capture")
+
+	environment.mustRunKubeCLI(t, "save helper-compressed PVC data",
+		"pvc", "save", "dir", destination,
+		"--strategy", "pod",
+		"--image", fixture.helperImage,
+		"--namespace", fixture.namespace,
+		"--pvc", fixture.pvc,
+		"--compression", "gzip",
+		"--compression-side", "helper",
+	)
+
+	archivePath, archiveSize := findPVCArchive(t, destination, "data.tar.gz")
+	if archiveSize == 0 {
+		t.Fatal("helper-compressed PVC archive is empty")
+	}
+	assertPVCArchive(t, archivePath, false)
+
+	extracted := filepath.Join(environment.root, "pvc-helper-compressed-extracted")
+	environment.mustRunCLI(t, "extract helper-compressed PVC data", "pvc", "extract", archivePath, extracted)
+	assertExtractedPVCData(t, extracted)
+}
+
 // TestPVCExecAcknowledgesSlowReceiverAgainstKind exercises the real exec stream
 // while the receiver deliberately limits throughput.
 func TestPVCExecAcknowledgesSlowReceiverAgainstKind(t *testing.T) {

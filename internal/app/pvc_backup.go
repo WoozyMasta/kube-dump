@@ -63,6 +63,7 @@ func backupPVCData(
 	destination string,
 	runID string,
 	options PvcSaveOptions,
+	compressionSide pvc.CompressionSide,
 	clientOptions kube.ClientOptions,
 	manager *progress.Manager,
 	remoteOptions *pvc.S3MoverOptions,
@@ -105,7 +106,7 @@ func backupPVCData(
 	if remoteOptions == nil {
 		// Local destinations use a client-mediated strategy
 		// that writes the decoded stream into VolumeStore after the helper finishes exporting it.
-		strategy, err = newPVCStrategies(client, options, recipients, runID)
+		strategy, err = newPVCStrategies(client, options, compressionSide, recipients, runID)
 		if err != nil {
 			return err
 		}
@@ -421,6 +422,7 @@ func backupPVCClaim(
 func newPVCStrategies(
 	client *kube.Client,
 	options PvcSaveOptions,
+	compressionSide pvc.CompressionSide,
 	recipients []age.Recipient,
 	runID string,
 ) (pvc.BackupStrategy, error) {
@@ -429,11 +431,12 @@ func newPVCStrategies(
 	}
 
 	direct, err := pvc.NewPodStrategy(pvc.PodStrategyOptions{
-		Dynamic:     client.Dynamic,
-		Exec:        pvc.RESTExecTransport{Config: client.Config},
-		Image:       options.Image,
-		Compression: options.Compression,
-		Recipients:  recipients,
+		Dynamic:         client.Dynamic,
+		Exec:            pvc.RESTExecTransport{Config: client.Config},
+		Image:           options.Image,
+		Compression:     options.Compression,
+		CompressionSide: compressionSide,
+		Recipients:      recipients,
 		Helper: pvc.HelperPodOptions{
 			AgentBinary:     options.HelperBinaryPath,
 			ImagePullPolicy: options.ImagePullPolicy,

@@ -82,15 +82,31 @@ func (r *volumeCountReader) Read(data []byte) (int, error) {
 	return read, err
 }
 
-// Execute streams a safe tar archive of the mounted volume to the helper Pod's stdout.
-// The command emits no logs so stdout remains a binary-only channel.
+// Execute streams a safe tar archive of the mounted volume to stdout.
+// Compressed exports rely on exec EOF to finish receiver-side validation;
+// raw exports use the acknowledgement protocol.
 func (c *VolumeExportCommand) Execute(_ []string) error {
 	if c.output == nil {
 		return errors.New("volume export output is required")
 	}
 
-	if err := pvc.ExportVolume(c.context(), c.Positional.Path, c.output); err != nil {
-		return err
+	algorithm := c.Compression
+	if algorithm == "" {
+		algorithm = compress.None
+	}
+	compressor, err := compress.NewWriter(c.output, compress.Config{Algorithm: algorithm})
+	if err != nil {
+		return fmt.Errorf("create volume archive compressor: %w", err)
+	}
+
+	exportErr := pvc.ExportVolume(c.context(), c.Positional.Path, compressor)
+	closeErr := compressor.Close()
+	if exportErr != nil || closeErr != nil {
+		return errors.Join(exportErr, closeErr)
+	}
+	if algorithm != compress.None {
+		// The receiver needs exec EOF to finish decoding this stream before it can validate and acknowledge it.
+		return nil
 	}
 
 	return waitForVolumeExportAcknowledgement(

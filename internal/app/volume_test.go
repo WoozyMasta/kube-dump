@@ -81,6 +81,37 @@ func TestVolumeExportRequiresReceiverAcknowledgement(t *testing.T) {
 	}
 }
 
+func TestVolumeExportCompressesArchiveBeforeAcknowledgement(t *testing.T) {
+	t.Parallel()
+
+	var encoded bytes.Buffer
+	ackReader, ackWriter := io.Pipe()
+	defer func() {
+		_ = ackReader.Close()
+		_ = ackWriter.Close()
+	}()
+	command := VolumeExportCommand{}
+	command.commandContext = commandContext{ctx: context.Background()}
+	command.commandStreams = commandStreams{
+		output: &encoded,
+		input:  ackReader,
+	}
+	command.Compression = compress.Gzip
+	command.Positional.Path = t.TempDir()
+
+	if err := command.Execute(nil); err != nil {
+		t.Fatalf("VolumeExportCommand() error = %v", err)
+	}
+	decoded, err := compress.NewReader(bytes.NewReader(encoded.Bytes()), compress.Gzip)
+	if err != nil {
+		t.Fatalf("open compressed volume archive: %v", err)
+	}
+	defer func() { _ = decoded.Close() }()
+	if _, err := pvc.ValidateVolumeArchive(context.Background(), decoded); err != nil {
+		t.Fatalf("validate compressed volume archive: %v", err)
+	}
+}
+
 func TestVolumeExportWaitsForReceiverAcknowledgement(t *testing.T) {
 	t.Parallel()
 

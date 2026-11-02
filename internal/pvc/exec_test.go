@@ -10,6 +10,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/woozymasta/kube-dump/v2/internal/compress"
 )
 
 type captureExecTransport struct {
@@ -25,6 +27,17 @@ type outputExecTransport struct {
 	output                     []byte
 	err                        error
 	exitWithoutAcknowledgement bool
+}
+
+type outputExecWithoutAcknowledgement struct {
+	output  []byte
+	request ExecRequest
+}
+
+func (t *outputExecWithoutAcknowledgement) Exec(_ context.Context, request ExecRequest, _ io.Reader, stdout, _ io.Writer) error {
+	t.request = request
+	_, err := stdout.Write(t.output)
+	return err
 }
 
 func (t outputExecTransport) Exec(_ context.Context, _ ExecRequest, stdin io.Reader, stdout, _ io.Writer) error {
@@ -131,6 +144,47 @@ func TestPodStrategyExecVerifiedArchiveAcceptsCompleteOutput(t *testing.T) {
 	}
 	if stats.SizeBytes != int64(len(archive)) {
 		t.Fatalf("validated bytes = %d, want %d", stats.SizeBytes, len(archive))
+	}
+}
+
+func TestPodStrategyExecVerifiedArchiveAcceptsHelperCompressedOutput(t *testing.T) {
+	t.Parallel()
+
+	archive := testVolumeArchive(t, 8*volumeTarBlockSize)
+	var compressed bytes.Buffer
+	writer, err := compress.NewWriter(&compressed, compress.Config{Algorithm: compress.Gzip})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := writer.Write(archive); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	transport := &outputExecWithoutAcknowledgement{output: compressed.Bytes()}
+	strategy := &PodStrategy{options: PodStrategyOptions{
+		Exec:            transport,
+		Compression:     compress.Gzip,
+		CompressionSide: CompressionSideHelper,
+	}}
+	pod := HelperPod{AgentBinary: "/bin/kube-dump", MountPath: "/data"}
+
+	var stored bytes.Buffer
+	stats, err := strategy.execVerifiedArchive(context.Background(), pod, &stored)
+	if err != nil {
+		t.Fatalf("execVerifiedArchive() error = %v", err)
+	}
+	if stats.SizeBytes != int64(len(archive)) {
+		t.Fatalf("validated bytes = %d, want %d", stats.SizeBytes, len(archive))
+	}
+	if !bytes.Equal(stored.Bytes(), compressed.Bytes()) {
+		t.Fatal("stored helper stream differs from compressed output")
+	}
+	wantCommand := []string{"/bin/kube-dump", "volume", "export", "/data", "--compression", "gzip"}
+	if !reflect.DeepEqual(transport.request.Command, wantCommand) {
+		t.Fatalf("helper command = %#v, want %#v", transport.request.Command, wantCommand)
 	}
 }
 

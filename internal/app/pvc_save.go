@@ -21,6 +21,7 @@ func (c *PvcSaveDirCommand) Execute(_ []string) (err error) {
 		c.Path,
 		operationID,
 		c.PvcSaveOptions,
+		c.CompressionSide,
 		c.clientOptions,
 		c.progress,
 		nil,
@@ -68,6 +69,7 @@ func (c *PvcSaveS3Command) Execute(_ []string) (err error) {
 		"",
 		operationID,
 		c.PvcSaveOptions,
+		pvc.CompressionSideClient,
 		c.clientOptions,
 		c.progress,
 		&pvc.S3MoverOptions{

@@ -65,14 +65,19 @@ or `data.tar.age` when encrypted.
 The metadata records the format, strategy, compression, uncompressed size,
 SHA-256 digest, and encryption state. `sizeBytes` is the uncompressed size.
 
+For local saves, `kube-dump` performs compression by default.
+`--compression-side helper` moves it to the helper Pod:
+less data travels through Kubernetes exec, but the helper uses more CPU.
+
 > [!NOTE]
 > If a PVC backup occasionally fails with `unexpected EOF`,
 > try `--compression none`.
 > It reduces CPU work but increases the archive size
-> and data sent through Kubernetes exec. Check the network and helper Pod load.
-> Local backups are compressed by `kube-dump`;
-> direct S3 backups are compressed by the helper.
-> Increase helper resources only if it is the bottleneck.
+> and data sent through Kubernetes exec.
+> Another option is `--compression-side helper`,
+> which reduces exec traffic but shifts CPU work to the helper Pod.
+> Check the network and helper load;
+> increase helper resources only if it is the bottleneck.
 
 Archives preserve regular files, directories, relative symbolic links,
 permissions, numeric UID/GID, and modification time.

@@ -917,6 +917,12 @@ Capture PVC filesystems and store archives locally
 
 **Usage:** `kube-dump [OPTIONS] pvc [pvc-OPTIONS] save dir [dir-OPTIONS]`
 
+#### Additional
+
+|Option|Description|Default|Environment|Required|
+|---|---|---|---|---|
+|`--compression-side`|Process that compresses local PVC archives: client or helper Pod; choices: `client, helper`|`client`|`$KUBE_DUMP_COMPRESSION_SIDE`|no|
+
 #### Profile
 
 |Option|Description|Default|Environment|Required|

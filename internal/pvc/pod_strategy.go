@@ -25,6 +25,16 @@ import (
 
 const cleanupTimeout = 30 * time.Second
 
+// CompressionSide identifies the process that compresses a local PVC backup stream.
+type CompressionSide string
+
+const (
+	// CompressionSideClient compresses the stream in the kube-dump process.
+	CompressionSideClient CompressionSide = "client"
+	// CompressionSideHelper compresses the stream in the Kubernetes helper Pod.
+	CompressionSideHelper CompressionSide = "helper"
+)
+
 var pvcResource = schema.GroupVersionResource{Version: "v1", Resource: "persistentvolumeclaims"}
 
 // PodStrategyOptions configures direct PVC streaming through a helper Pod.
@@ -40,6 +50,8 @@ type PodStrategyOptions struct {
 	Image string
 	// Compression selects the artifact stream compression algorithm.
 	Compression compress.Algorithm
+	// CompressionSide selects where the artifact stream is compressed.
+	CompressionSide CompressionSide
 	// Recipients enables binary age encryption of the volume stream.
 	Recipients []age.Recipient
 	// Helper contains helper Pod defaults and readiness settings.
@@ -89,6 +101,12 @@ func NewPodStrategy(options PodStrategyOptions) (*PodStrategy, error) {
 	}
 	if err := (compress.Config{Algorithm: options.Compression}).Validate(); err != nil {
 		return nil, fmt.Errorf("validate PVC strategy compression: %w", err)
+	}
+	if options.CompressionSide == "" {
+		options.CompressionSide = CompressionSideClient
+	}
+	if options.CompressionSide != CompressionSideClient && options.CompressionSide != CompressionSideHelper {
+		return nil, fmt.Errorf("unsupported PVC compression side %q", options.CompressionSide)
 	}
 
 	options.Helper.Dynamic = options.Dynamic
@@ -140,8 +158,7 @@ func (s *PodStrategy) Backup(ctx context.Context, pvc Ref, dst io.Writer) (metad
 		}
 	}()
 
-	// Compose the stream as agent -> compressor -> optional age encryptor -> dst.
-	// Closing happens in reverse order so every layer flushes before metadata is finalized.
+	// Encryption remains on the client so credentials and recipients are not sent to the helper.
 	streamDestination := dst
 	var encryptor io.WriteCloser
 	if len(s.options.Recipients) > 0 {
@@ -152,17 +169,24 @@ func (s *PodStrategy) Backup(ctx context.Context, pvc Ref, dst io.Writer) (metad
 		streamDestination = encryptor
 	}
 
-	compressor, err := compress.NewWriter(streamDestination, compress.Config{Algorithm: s.options.Compression})
-	if err != nil {
-		if encryptor != nil {
-			_ = encryptor.Close()
+	var compressor io.WriteCloser
+	if s.options.CompressionSide == CompressionSideClient {
+		compressor, err = compress.NewWriter(streamDestination, compress.Config{Algorithm: s.options.Compression})
+		if err != nil {
+			if encryptor != nil {
+				_ = encryptor.Close()
+			}
+			return Metadata{}, fmt.Errorf("create PVC stream compressor: %w", err)
 		}
-		return Metadata{}, fmt.Errorf("create PVC stream compressor: %w", err)
+		streamDestination = compressor
 	}
 
 	reportProgress(ctx, ProgressEvent{Stage: StageStreaming, Percent: 25})
-	stats, streamErr := s.execVerifiedArchive(ctx, pod, compressor)
-	closeErr := compressor.Close()
+	stats, streamErr := s.execVerifiedArchive(ctx, pod, streamDestination)
+	var closeErr error
+	if compressor != nil {
+		closeErr = compressor.Close()
+	}
 	if encryptor != nil {
 		closeErr = errors.Join(closeErr, encryptor.Close())
 	}
@@ -189,8 +213,7 @@ func (s *PodStrategy) Backup(ctx context.Context, pvc Ref, dst io.Writer) (metad
 	}, nil
 }
 
-// execVerifiedArchive validates the helper's raw tar stream before codecs hide
-// an early EOF inside a complete compressed frame.
+// execVerifiedArchive validates decoded tar bytes while forwarding the original stream.
 func (s *PodStrategy) execVerifiedArchive(ctx context.Context, pod HelperPod, destination io.Writer) (ArchiveStats, error) {
 	if ctx == nil || destination == nil {
 		return ArchiveStats{}, errors.New("PVC archive stream context and destination are required")
@@ -198,8 +221,14 @@ func (s *PodStrategy) execVerifiedArchive(ctx context.Context, pod HelperPod, de
 
 	verifyReader, verifyWriter := io.Pipe()
 	ackReader, ackWriter := io.Pipe()
+	// A helper-compressed decoder needs exec EOF to finish; validate after the helper exits instead of waiting for an ACK.
+	waitForAcknowledgement := s.options.CompressionSide != CompressionSideHelper || s.options.Compression == compress.None
 	var ackOnce sync.Once
 	sendAcknowledgement := func(streamErr error) error {
+		if !waitForAcknowledgement {
+			return nil
+		}
+
 		var ackErr error
 		ackOnce.Do(func() {
 			if streamErr != nil {
@@ -222,9 +251,33 @@ func (s *PodStrategy) execVerifiedArchive(ctx context.Context, pod HelperPod, de
 		err   error
 	}, 1)
 	go func() {
-		stats, err := verifyVolumeArchiveStream(ctx, verifyReader, func() error {
+		var archiveReader io.Reader = verifyReader
+		var decoder io.ReadCloser
+		var err error
+		if s.options.CompressionSide == CompressionSideHelper {
+			decoder, err = compress.NewReader(verifyReader, s.options.Compression)
+			if err != nil {
+				_ = sendAcknowledgement(err)
+				_ = verifyReader.CloseWithError(err)
+				verified <- struct {
+					stats ArchiveStats
+					err   error
+				}{
+					err: fmt.Errorf("create helper PVC stream decoder: %w", err),
+				}
+				return
+			}
+
+			archiveReader = decoder
+		}
+
+		stats, err := verifyVolumeArchiveStream(ctx, archiveReader, func() error {
 			return sendAcknowledgement(nil)
 		})
+
+		if decoder != nil {
+			err = errors.Join(err, decoder.Close())
+		}
 		if err != nil {
 			_ = sendAcknowledgement(err)
 			_ = verifyReader.CloseWithError(err)
@@ -243,21 +296,34 @@ func (s *PodStrategy) execVerifiedArchive(ctx context.Context, pod HelperPod, de
 			_ = sendAcknowledgement(err)
 		},
 	}
-	execErr := s.exec(ctx, pod, []string{
+
+	command := []string{
 		pod.AgentBinary,
 		"volume",
 		"export",
 		pod.MountPath,
-	}, ackReader, output)
-	if execErr != nil {
+	}
+	if s.options.CompressionSide == CompressionSideHelper {
+		command = append(command, "--compression", string(s.options.Compression))
+	}
+
+	execErr := s.exec(ctx, pod, command, ackReader, output)
+	if !waitForAcknowledgement {
+		_ = ackWriter.Close()
+	}
+
+	switch {
+	case execErr != nil:
 		_ = ackReader.CloseWithError(execErr)
 		_ = sendAcknowledgement(execErr)
 		_ = verifyWriter.CloseWithError(execErr)
-	} else if output.err != nil {
+
+	case output.err != nil:
 		_ = ackReader.CloseWithError(output.err)
 		_ = sendAcknowledgement(output.err)
 		_ = verifyWriter.CloseWithError(output.err)
-	} else {
+
+	default:
 		_ = ackReader.Close()
 		_ = verifyWriter.Close()
 	}
@@ -270,12 +336,14 @@ func (s *PodStrategy) execVerifiedArchive(ctx context.Context, pod HelperPod, de
 		return ArchiveStats{}, errors.Join(execErr, result.err)
 	}
 
-	if output.bytes != result.stats.SizeBytes {
-		return ArchiveStats{}, fmt.Errorf(
-			"PVC helper stream wrote %d bytes but archive validation consumed %d",
-			output.bytes,
-			result.stats.SizeBytes,
-		)
+	if s.options.CompressionSide != CompressionSideHelper || s.options.Compression == compress.None {
+		if output.bytes != result.stats.SizeBytes {
+			return ArchiveStats{}, fmt.Errorf(
+				"PVC helper stream wrote %d bytes but archive validation consumed %d",
+				output.bytes,
+				result.stats.SizeBytes,
+			)
+		}
 	}
 
 	return result.stats, nil

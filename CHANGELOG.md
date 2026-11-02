@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning][].
 ### Added
 
 * Optional uncompressed PVC archives with `--compression=none`.
+* Option to compress local PVC backup archives in the helper Pod
+  with `--compression-side=helper`.
 
 ### Fixed
 

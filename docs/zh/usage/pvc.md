@@ -61,11 +61,16 @@ kube-dump pvc save dir ./backup --compression none
 元数据记录格式、策略、压缩方式、未压缩大小、SHA-256 摘要和加密状态。
 `sizeBytes` 是未压缩大小。
 
+本地保存默认由 `kube-dump` 执行压缩。
+使用 `--compression-side helper` 可将压缩移至 helper Pod：
+通过 Kubernetes exec 传输的数据会减少，但 helper 的 CPU 负载会增加。
+
 > [!NOTE]
 > 如果 PVC 备份偶尔以 `unexpected EOF` 失败，可以试试
 > `--compression none`。这会降低 CPU 负载，但会增大归档和通过 Kubernetes exec
-> 传输的数据量。请检查网络和 helper Pod 的负载。本地备份由 `kube-dump`
-> 压缩，直接写入 S3 时由 helper 压缩。只有确认 helper 是瓶颈时，增加它的资源才有帮助。
+> 传输的数据量。也可以尝试 `--compression-side helper`：这样会减少 exec
+> 流量，但会把 CPU 负载转移到 helper Pod。请检查网络和 helper 的负载；
+> 只有确认 helper 是瓶颈时，增加它的资源才有帮助。
 
 归档会保留普通文件、目录、相对符号链接、权限位、数字 UID/GID 和修改时间。
 不会保留扩展属性、ACL、稀疏文件、硬链接拓扑、设备文件或其他特殊文件。

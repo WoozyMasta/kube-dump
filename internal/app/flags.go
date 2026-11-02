@@ -503,9 +503,15 @@ type PvcCaptureOptions struct {
 // PvcSaveDirCommand writes PVC data to a directory.
 type PvcSaveDirCommand struct {
 	commandContext
-	DirectoryPath `positional-args:"yes"`
-	clientOptions kube.ClientOptions
+	DirectoryPath     `positional-args:"yes"`
+	PvcSaveDirOptions `group:"Additional"`
+	clientOptions     kube.ClientOptions
 	PvcSaveOptions
+}
+
+// PvcSaveDirOptions contains flags specific to local PVC backups.
+type PvcSaveDirOptions struct {
+	CompressionSide pvc.CompressionSide `default:"client" long:"compression-side" choices:"client;helper" description:"Process that compresses local PVC archives: client or helper Pod"`
 }
 
 // PvcSaveS3Command writes PVC data to an S3-compatible store.
@@ -992,9 +998,10 @@ type VolumeCommand struct {
 type VolumeExportCommand struct {
 	commandContext
 	commandStreams
+	Compression compress.Algorithm `default:"none" description:"PVC archive compression" auto-env:"false" long:"compression" choices:"zstd;gzip;none"`
 
 	Positional struct {
-		Path string `default:"/volume" positional-arg-name:"PATH" description:"Mounted volume root"`
+		Path string `default:"/volume" description:"Mounted volume root" positional-arg-name:"PATH"`
 	} `positional-args:"yes"`
 }
 
