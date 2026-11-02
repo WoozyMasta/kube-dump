@@ -107,7 +107,11 @@ func (s VolumeStore) WriteWithStats(ctx context.Context, pvc Ref, strategy Backu
 		}
 	}()
 
-	metadata, backupErr := strategy.Backup(ctx, pvc, dataFile)
+	dataWriter := &countingWriter{writer: dataFile}
+	metadata, backupErr := strategy.Backup(ctx, pvc, dataWriter)
+	if dataWriter.err != nil {
+		backupErr = errors.Join(backupErr, fmt.Errorf("write PVC artifact data: %w", dataWriter.err))
+	}
 	if syncErr := dataFile.Sync(); syncErr != nil {
 		backupErr = errors.Join(backupErr, fmt.Errorf("sync PVC artifact data: %w", syncErr))
 	}
@@ -128,6 +132,13 @@ func (s VolumeStore) WriteWithStats(ctx context.Context, pvc Ref, strategy Backu
 	dataInfo, err := os.Stat(dataTarget)
 	if err != nil {
 		return Metadata{}, 0, fmt.Errorf("stat PVC artifact data: %w", err)
+	}
+	if dataInfo.Size() != dataWriter.bytes {
+		return Metadata{}, 0, fmt.Errorf(
+			"PVC artifact data size is %d bytes on disk, but %d bytes were written",
+			dataInfo.Size(),
+			dataWriter.bytes,
+		)
 	}
 
 	removeData = false

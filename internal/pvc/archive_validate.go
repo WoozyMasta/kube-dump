@@ -16,6 +16,8 @@ import (
 	"path"
 )
 
+const volumeTarBlockSize = 512
+
 const (
 	maxVolumeArchiveEntries              = 1_000_000
 	tarEntryDirectory       tarEntryType = iota + 1
@@ -31,7 +33,7 @@ type ArchiveStats struct {
 	SizeBytes int64
 }
 
-// archiveStatsReader hashes and counts every encoded byte consumed by tar.Reader.
+// archiveStatsReader hashes and counts every decoded tar-stream byte consumed by tar.Reader.
 type archiveStatsReader struct {
 	reader io.Reader
 	hash   hash.Hash
@@ -43,13 +45,30 @@ type tarEntryType uint8
 // ValidateVolumeArchive reads and validates a complete decoded PVC archive.
 // It does not touch a destination volume and retains no archive payload in memory.
 func ValidateVolumeArchive(ctx context.Context, src io.Reader) (ArchiveStats, error) {
+	return validateVolumeArchive(ctx, src, true)
+}
+
+// verifyVolumeArchiveStream checks a producer-owned archive without retaining path indexes,
+// so the backup path uses constant memory apart from tar.Reader.
+func verifyVolumeArchiveStream(ctx context.Context, src io.Reader) (ArchiveStats, error) {
+	return validateVolumeArchive(ctx, src, false)
+}
+
+// validateVolumeArchive streams one archive and optionally checks path conflicts.
+func validateVolumeArchive(ctx context.Context, src io.Reader, validatePaths bool) (ArchiveStats, error) {
 	if ctx == nil || src == nil {
 		return ArchiveStats{}, errors.New("volume archive validation context and source are required")
 	}
 
-	entries := make(map[string]tarEntryType)
-	descendants := make(map[string]bool)
+	var entries map[string]tarEntryType
+	var descendants map[string]bool
+	if validatePaths {
+		entries = make(map[string]tarEntryType)
+		descendants = make(map[string]bool)
+	}
 	rootSeen := false
+	entryCount := 0
+	var pendingPadding int64
 	statsReader := &archiveStatsReader{
 		reader: &contextReader{ctx: ctx, reader: src},
 		hash:   sha256.New(),
@@ -61,11 +80,17 @@ func ValidateVolumeArchive(ctx context.Context, src io.Reader) (ArchiveStats, er
 			return ArchiveStats{}, err
 		}
 
+		beforeNext := statsReader.size
 		header, err := reader.Next()
 		if errors.Is(err, io.EOF) {
 			if !rootSeen {
 				return ArchiveStats{}, errors.New("volume archive is missing the root metadata record")
 			}
+
+			if err := validateTarTerminator(statsReader, beforeNext, pendingPadding); err != nil {
+				return ArchiveStats{}, err
+			}
+
 			return ArchiveStats{
 				SizeBytes:     statsReader.size,
 				ContentSHA256: hex.EncodeToString(statsReader.hash.Sum(nil)),
@@ -82,6 +107,8 @@ func ValidateVolumeArchive(ctx context.Context, src io.Reader) (ArchiveStats, er
 		if err != nil {
 			return ArchiveStats{}, err
 		}
+
+		pendingPadding = (volumeTarBlockSize - header.Size%volumeTarBlockSize) % volumeTarBlockSize
 		if !rootSeen {
 			if name != "." {
 				return ArchiveStats{}, errors.New("volume archive is missing the root metadata record")
@@ -90,29 +117,35 @@ func ValidateVolumeArchive(ctx context.Context, src io.Reader) (ArchiveStats, er
 		} else if name == "." {
 			return ArchiveStats{}, errors.New("volume archive contains duplicate root metadata records")
 		}
-		if _, exists := entries[name]; exists {
-			return ArchiveStats{}, fmt.Errorf("volume archive contains duplicate path %q", name)
+
+		if validatePaths {
+			if _, exists := entries[name]; exists {
+				return ArchiveStats{}, fmt.Errorf("volume archive contains duplicate path %q", name)
+			}
 		}
 
-		if len(entries) >= maxVolumeArchiveEntries {
+		if entryCount >= maxVolumeArchiveEntries {
 			return ArchiveStats{}, fmt.Errorf(
 				"volume archive contains more than %d entries",
 				maxVolumeArchiveEntries,
 			)
 		}
+		entryCount++
 
-		for parent := path.Dir(name); parent != "."; parent = path.Dir(parent) {
-			if parentType, exists := entries[parent]; exists && parentType != tarEntryDirectory {
-				return ArchiveStats{}, fmt.Errorf("volume archive path %q traverses non-directory %q", name, parent)
+		if validatePaths {
+			for parent := path.Dir(name); parent != "."; parent = path.Dir(parent) {
+				if parentType, exists := entries[parent]; exists && parentType != tarEntryDirectory {
+					return ArchiveStats{}, fmt.Errorf("volume archive path %q traverses non-directory %q", name, parent)
+				}
 			}
-		}
-		if entryType != tarEntryDirectory && descendants[name] {
-			return ArchiveStats{}, fmt.Errorf("volume archive path %q conflicts with a child path", name)
-		}
+			if entryType != tarEntryDirectory && descendants[name] {
+				return ArchiveStats{}, fmt.Errorf("volume archive path %q conflicts with a child path", name)
+			}
 
-		entries[name] = entryType
-		for parent := path.Dir(name); parent != "."; parent = path.Dir(parent) {
-			descendants[parent] = true
+			entries[name] = entryType
+			for parent := path.Dir(name); parent != "."; parent = path.Dir(parent) {
+				descendants[parent] = true
+			}
 		}
 
 		if entryType != tarEntryRegular {
@@ -153,11 +186,35 @@ func consumeArchivePayload(reader io.Reader, expected int64) (int64, error) {
 func (r *archiveStatsReader) Read(p []byte) (int, error) {
 	n, err := r.reader.Read(p)
 	if n > 0 {
-		_, _ = r.hash.Write(p[:n])
+		if r.hash != nil {
+			_, _ = r.hash.Write(p[:n])
+		}
 		r.size += int64(n)
 	}
 
 	return n, err
+}
+
+// validateTarTerminator checks the required two zero blocks and rejects trailing bytes.
+func validateTarTerminator(reader *archiveStatsReader, beforeNext, pendingPadding int64) error {
+	terminalBytes := reader.size - beforeNext - pendingPadding
+	if terminalBytes != 2*volumeTarBlockSize {
+		return fmt.Errorf(
+			"volume archive has an incomplete tar terminator: read %d of %d bytes",
+			terminalBytes,
+			2*volumeTarBlockSize,
+		)
+	}
+
+	var trailing [1]byte
+	if read, err := io.ReadFull(reader, trailing[:]); read != 0 || err != io.EOF {
+		if err != nil && err != io.EOF {
+			return fmt.Errorf("read volume archive trailer: %w", err)
+		}
+		return errors.New("volume archive contains data after its tar terminator")
+	}
+
+	return nil
 }
 
 // validateArchiveHeader checks one tar header without consuming its payload.

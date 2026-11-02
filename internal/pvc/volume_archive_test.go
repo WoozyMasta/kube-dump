@@ -90,6 +90,40 @@ func TestValidateVolumeArchiveRejectsTruncatedPayload(t *testing.T) {
 	}
 }
 
+func TestValidateVolumeArchiveRequiresCompleteTarTerminator(t *testing.T) {
+	t.Parallel()
+	source := t.TempDir()
+	if err := os.WriteFile(filepath.Join(source, "data"), []byte("payload"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	var archive bytes.Buffer
+	if err := ExportVolume(context.Background(), source, &archive); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, trim := range []int{volumeTarBlockSize, 2 * volumeTarBlockSize} {
+		truncated := archive.Bytes()[:archive.Len()-trim]
+		if _, err := ValidateVolumeArchive(context.Background(), bytes.NewReader(truncated)); err == nil {
+			t.Errorf("ValidateVolumeArchive() accepted archive missing %d terminator bytes", trim)
+		}
+	}
+}
+
+func TestValidateVolumeArchiveRejectsTrailingData(t *testing.T) {
+	t.Parallel()
+	source := t.TempDir()
+	var archive bytes.Buffer
+	if err := ExportVolume(context.Background(), source, &archive); err != nil {
+		t.Fatal(err)
+	}
+
+	withTrailingData := append(append([]byte(nil), archive.Bytes()...), 0)
+	if _, err := ValidateVolumeArchive(context.Background(), bytes.NewReader(withTrailingData)); err == nil {
+		t.Fatal("ValidateVolumeArchive() accepted trailing data")
+	}
+}
+
 func TestValidateVolumeArchiveRejectsDuplicateAndConflictingPaths(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -395,6 +429,28 @@ func TestImportVerifiedVolumeRejectsEmptyArchiveBeforeReplacement(t *testing.T) 
 	}
 	if string(data) != "preserve" {
 		t.Fatalf("existing data = %q, want preserve", data)
+	}
+}
+
+func TestImportVerifiedVolumeRejectsTruncatedTarTerminator(t *testing.T) {
+	t.Parallel()
+
+	source := t.TempDir()
+
+	var archive bytes.Buffer
+	if err := ExportVolume(context.Background(), source, &archive); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, trim := range []int{volumeTarBlockSize, 2 * volumeTarBlockSize} {
+		destination := t.TempDir()
+		truncated := archive.Bytes()[:archive.Len()-trim]
+		err := ImportVerifiedVolume(
+			context.Background(), destination, bytes.NewReader(truncated), ExistingMerge,
+		)
+		if err == nil {
+			t.Errorf("ImportVerifiedVolume() accepted archive missing %d terminator bytes", trim)
+		}
 	}
 }
 

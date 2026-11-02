@@ -33,6 +33,7 @@ import (
 type restoreCountReader struct {
 	reader io.Reader // reader is the decoded archive payload stream.
 	bytes  int64     // bytes is the number of decoded payload bytes returned to the helper strategy.
+	err    error     // err retains read failures that client-go's stdin copier may only log.
 }
 
 // restoreContextReader makes local archive spooling observe cancellation between reads.
@@ -373,6 +374,9 @@ func restorePVCStream(
 	}
 
 	restoreErr := strategy.Restore(ctx, target, count, options.Existing)
+	if count.err != nil {
+		restoreErr = errors.Join(restoreErr, fmt.Errorf("read PVC restore stream: %w", count.err))
+	}
 	if restoreErr != nil && !pvc.IsCleanupOnly(restoreErr) {
 		return restoreErr
 	}
@@ -594,6 +598,9 @@ func findS3PVCArtifact(ctx context.Context, store *export.S3Store, claim pvc.Ref
 func (r *restoreCountReader) Read(p []byte) (int, error) {
 	n, err := r.reader.Read(p)
 	r.bytes += int64(n)
+	if err != nil && !errors.Is(err, io.EOF) && r.err == nil {
+		r.err = err
+	}
 	return n, err
 }
 

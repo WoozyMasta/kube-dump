@@ -7,8 +7,6 @@ package pvc
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -53,12 +51,14 @@ type PodStrategy struct {
 	options PodStrategyOptions
 }
 
-// countWriter counts uncompressed bytes while forwarding them to a writer.
-type countWriter struct {
+// countingWriter counts accepted bytes and retains the first write failure.
+type countingWriter struct {
 	// writer receives the forwarded stream bytes.
 	writer io.Writer
 	// bytes is the number of bytes accepted by writer.
 	bytes int64
+	// err retains a write failure in case the exec transport does not return it.
+	err error
 }
 
 // limitedBuffer bounds diagnostic output from a helper command.
@@ -157,20 +157,20 @@ func (s *PodStrategy) Backup(ctx context.Context, pvc Ref, dst io.Writer) (metad
 		return Metadata{}, fmt.Errorf("create PVC stream compressor: %w", err)
 	}
 
-	hash := sha256.New()
-	count := &countWriter{writer: io.MultiWriter(compressor, hash)}
 	reportProgress(ctx, ProgressEvent{Stage: StageStreaming, Percent: 25})
-	if err := s.exec(ctx, pod, []string{pod.AgentBinary, "volume", "export", pod.MountPath}, nil, count); err != nil {
-		_ = compressor.Close()
-		return Metadata{}, err
-	}
-	if err := compressor.Close(); err != nil {
-		return Metadata{}, fmt.Errorf("close PVC stream compressor: %w", err)
-	}
+	stats, streamErr := s.execVerifiedArchive(ctx, pod, compressor)
+	closeErr := compressor.Close()
 	if encryptor != nil {
-		if err := encryptor.Close(); err != nil {
-			return Metadata{}, fmt.Errorf("close PVC stream encryptor: %w", err)
+		closeErr = errors.Join(closeErr, encryptor.Close())
+	}
+	if streamErr != nil {
+		if closeErr != nil {
+			streamErr = errors.Join(streamErr, fmt.Errorf("close PVC stream codecs: %w", closeErr))
 		}
+		return Metadata{}, streamErr
+	}
+	if closeErr != nil {
+		return Metadata{}, fmt.Errorf("close PVC stream codecs: %w", closeErr)
 	}
 
 	reportProgress(ctx, ProgressEvent{Stage: StageFinalizing, Percent: 90})
@@ -181,9 +181,68 @@ func (s *PodStrategy) Backup(ctx context.Context, pvc Ref, dst io.Writer) (metad
 		Compression:   string(s.options.Compression),
 		Encrypted:     len(s.options.Recipients) > 0,
 		Portable:      true,
-		SizeBytes:     count.bytes,
-		ContentSHA256: hex.EncodeToString(hash.Sum(nil)),
+		SizeBytes:     stats.SizeBytes,
+		ContentSHA256: stats.ContentSHA256,
 	}, nil
+}
+
+// execVerifiedArchive validates the helper's raw tar stream before codecs hide
+// an early EOF inside a complete compressed frame.
+func (s *PodStrategy) execVerifiedArchive(ctx context.Context, pod HelperPod, destination io.Writer) (ArchiveStats, error) {
+	if ctx == nil || destination == nil {
+		return ArchiveStats{}, errors.New("PVC archive stream context and destination are required")
+	}
+
+	verifyReader, verifyWriter := io.Pipe()
+	verified := make(chan struct {
+		stats ArchiveStats
+		err   error
+	}, 1)
+	go func() {
+		stats, err := verifyVolumeArchiveStream(ctx, verifyReader)
+		if err != nil {
+			_ = verifyReader.CloseWithError(err)
+		} else {
+			_ = verifyReader.Close()
+		}
+		verified <- struct {
+			stats ArchiveStats
+			err   error
+		}{stats: stats, err: err}
+	}()
+
+	output := &countingWriter{writer: io.MultiWriter(destination, verifyWriter)}
+	execErr := s.exec(ctx, pod, []string{
+		pod.AgentBinary,
+		"volume",
+		"export",
+		pod.MountPath,
+	}, nil, output)
+	if execErr != nil {
+		_ = verifyWriter.CloseWithError(execErr)
+	} else if output.err != nil {
+		_ = verifyWriter.CloseWithError(output.err)
+	} else {
+		_ = verifyWriter.Close()
+	}
+
+	result := <-verified
+	if output.err != nil {
+		return ArchiveStats{}, fmt.Errorf("write PVC archive stream: %w", output.err)
+	}
+	if execErr != nil || result.err != nil {
+		return ArchiveStats{}, errors.Join(execErr, result.err)
+	}
+
+	if output.bytes != result.stats.SizeBytes {
+		return ArchiveStats{}, fmt.Errorf(
+			"PVC helper stream wrote %d bytes but archive validation consumed %d",
+			output.bytes,
+			result.stats.SizeBytes,
+		)
+	}
+
+	return result.stats, nil
 }
 
 // Restore streams a portable archive into the target PVC through a helper Pod.
@@ -390,9 +449,19 @@ func helperPodName(_ Ref) string {
 }
 
 // Write forwards bytes and records the number successfully accepted.
-func (w *countWriter) Write(p []byte) (int, error) {
+func (w *countingWriter) Write(p []byte) (int, error) {
+	if w.err != nil {
+		return 0, w.err
+	}
+
 	n, err := w.writer.Write(p)
 	w.bytes += int64(n)
+	if err == nil && n != len(p) {
+		err = io.ErrShortWrite
+	}
+	if err != nil {
+		w.err = err
+	}
 
 	return n, err
 }

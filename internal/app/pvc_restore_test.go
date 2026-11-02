@@ -79,6 +79,32 @@ func TestPVCRestoreResultTreatsCleanupWarningAsSuccess(t *testing.T) {
 	}
 }
 
+func TestRestoreCountReaderRetainsReadError(t *testing.T) {
+	t.Parallel()
+
+	cleanEOF := &restoreCountReader{reader: strings.NewReader("")}
+	if _, err := cleanEOF.Read(make([]byte, 1)); !errors.Is(err, io.EOF) || cleanEOF.err != nil {
+		t.Fatalf("clean EOF = (%v, retained %v), want EOF without retained error", err, cleanEOF.err)
+	}
+
+	wantErr := errors.New("archive stream interrupted")
+	reader := &restoreCountReader{reader: restoreErrorReader{err: wantErr}}
+	if _, err := reader.Read(make([]byte, 1)); !errors.Is(err, wantErr) {
+		t.Fatalf("Read() error = %v, want %v", err, wantErr)
+	}
+	if !errors.Is(reader.err, wantErr) {
+		t.Fatalf("retained error = %v, want %v", reader.err, wantErr)
+	}
+}
+
+type restoreErrorReader struct {
+	err error
+}
+
+func (r restoreErrorReader) Read([]byte) (int, error) {
+	return 0, r.err
+}
+
 func TestFindS3PVCArtifactSkipsIncompleteLatestRevision(t *testing.T) {
 	claim := pvc.Ref{Namespace: "prod", Name: "data"}
 	base := "backup/volumes/prod/data"

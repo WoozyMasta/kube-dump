@@ -240,10 +240,10 @@ func ImportVolume(ctx context.Context, root string, src io.Reader, policy Existi
 	return ImportVerifiedVolume(ctx, root, archive, policy)
 }
 
-// ImportVerifiedVolume extracts a complete archive after the caller validated it in full.
-// The source must be stable between validation and extraction;
-// this function deliberately skips the private spool and second validation pass.
-// It is intended for internal orchestrators that own both guarantees.
+// ImportVerifiedVolume extracts an archive after the caller validated its contents and identity.
+// It deliberately skips the private spool and full validation pass,
+// but still checks the stream terminator so a truncated transfer cannot report success.
+// Extraction is not transactional: a stream failure may leave already written entries in place.
 func ImportVerifiedVolume(ctx context.Context, root string, src io.Reader, policy ExistingPolicy) error {
 	if ctx == nil || src == nil {
 		return errors.New("verified volume import context and source are required")
@@ -285,7 +285,7 @@ func spoolVolumeArchive(ctx context.Context, src io.Reader) (*os.File, error) {
 	return archive, nil
 }
 
-// importVerifiedVolume extracts an archive that has already passed full validation.
+// importVerifiedVolume extracts a prevalidated archive and verifies that its stream ends cleanly.
 func importVerifiedVolume(ctx context.Context, root string, src io.Reader, policy ExistingPolicy) error {
 	root, err := validateVolumeRoot(root)
 	if err != nil {
@@ -309,19 +309,25 @@ func importVerifiedVolume(ctx context.Context, root string, src io.Reader, polic
 		}
 	}
 
-	reader := tar.NewReader(src)
+	archiveReader := &archiveStatsReader{reader: &contextReader{ctx: ctx, reader: src}}
+	reader := tar.NewReader(archiveReader)
 	cleared := policy != ExistingReplace
 	directories := make([]archiveMetadata, 0)
 	rootSeen := false
+	var pendingPadding int64
 	for {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
 
+		beforeNext := archiveReader.size
 		header, err := reader.Next()
 		if errors.Is(err, io.EOF) {
 			if !rootSeen {
 				return errors.New("volume archive is missing the root metadata record")
+			}
+			if err := validateTarTerminator(archiveReader, beforeNext, pendingPadding); err != nil {
+				return err
 			}
 			if !cleared {
 				if err := clearVolumeDirectory(volumeRoot); err != nil {
@@ -346,6 +352,7 @@ func importVerifiedVolume(ctx context.Context, root string, src io.Reader, polic
 		if err != nil {
 			return err
 		}
+		pendingPadding = (volumeTarBlockSize - header.Size%volumeTarBlockSize) % volumeTarBlockSize
 
 		if !rootSeen {
 			if name != "." {
