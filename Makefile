@@ -250,7 +250,7 @@ tools-ci: tool-golangci-lint tool-betteralign tool-govulncheck
 tools-build: tool-schemadoc tool-winres
 
 tool-golangci-lint:
-	$(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$latest
+	$(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
 
 tool-betteralign:
 	$(GO) install github.com/dkorunic/betteralign/cmd/betteralign@latest
