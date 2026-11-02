@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+	"time"
 )
 
 type captureExecTransport struct {
@@ -21,11 +22,31 @@ func (t *captureExecTransport) Exec(_ context.Context, request ExecRequest, _ io
 }
 
 type outputExecTransport struct {
-	output []byte
+	output                     []byte
+	err                        error
+	exitWithoutAcknowledgement bool
 }
 
-func (t outputExecTransport) Exec(_ context.Context, _ ExecRequest, _ io.Reader, stdout, _ io.Writer) error {
-	_, _ = stdout.Write(t.output)
+func (t outputExecTransport) Exec(_ context.Context, _ ExecRequest, stdin io.Reader, stdout, _ io.Writer) error {
+	acknowledgement := make(chan []byte, 1)
+	go func() {
+		data, _ := io.ReadAll(stdin)
+		acknowledgement <- data
+	}()
+
+	if _, err := stdout.Write(t.output); err != nil {
+		return err
+	}
+	if t.err != nil {
+		return t.err
+	}
+	if t.exitWithoutAcknowledgement {
+		return nil
+	}
+	if received := <-acknowledgement; string(received) != VolumeExportAcknowledgement {
+		return errors.New("volume export acknowledgement is missing")
+	}
+
 	return nil
 }
 
@@ -85,7 +106,7 @@ func TestPodStrategyExecVerifiedArchiveRejectsTruncatedExecOutput(t *testing.T) 
 	archive := testVolumeArchive(t, 8*volumeTarBlockSize)
 	truncated := archive[:len(archive)-3*volumeTarBlockSize]
 	strategy := &PodStrategy{options: PodStrategyOptions{
-		Exec: outputExecTransport{output: truncated},
+		Exec: outputExecTransport{output: truncated, exitWithoutAcknowledgement: true},
 	}}
 	pod := HelperPod{AgentBinary: "/bin/kube-dump", MountPath: "/data"}
 
@@ -110,6 +131,30 @@ func TestPodStrategyExecVerifiedArchiveAcceptsCompleteOutput(t *testing.T) {
 	}
 	if stats.SizeBytes != int64(len(archive)) {
 		t.Fatalf("validated bytes = %d, want %d", stats.SizeBytes, len(archive))
+	}
+}
+
+func TestPodStrategyExecVerifiedArchiveUnblocksAcknowledgementOnExecError(t *testing.T) {
+	t.Parallel()
+
+	wantErr := errors.New("exec transport disconnected")
+	strategy := &PodStrategy{options: PodStrategyOptions{
+		Exec: outputExecTransport{output: testVolumeArchive(t, 8*volumeTarBlockSize), err: wantErr},
+	}}
+	pod := HelperPod{AgentBinary: "/bin/kube-dump", MountPath: "/data"}
+	result := make(chan error, 1)
+	go func() {
+		_, err := strategy.execVerifiedArchive(context.Background(), pod, io.Discard)
+		result <- err
+	}()
+
+	select {
+	case err := <-result:
+		if !errors.Is(err, wantErr) {
+			t.Fatalf("execVerifiedArchive() error = %v, want %v", err, wantErr)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("execVerifiedArchive() deadlocked while closing a pending acknowledgement")
 	}
 }
 

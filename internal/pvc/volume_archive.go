@@ -326,7 +326,7 @@ func importVerifiedVolume(ctx context.Context, root string, src io.Reader, polic
 			if !rootSeen {
 				return errors.New("volume archive is missing the root metadata record")
 			}
-			if err := validateTarTerminator(archiveReader, beforeNext, pendingPadding); err != nil {
+			if err := validateTarTerminator(archiveReader, beforeNext, pendingPadding, nil); err != nil {
 				return err
 			}
 			if !cleared {

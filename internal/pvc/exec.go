@@ -10,12 +10,20 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
+)
+
+const (
+	// VolumeExportAcknowledgement is sent only after the receiver has parsed the complete tar terminator.
+	VolumeExportAcknowledgement = "KUBE_DUMP_EXPORT_ACK\n"
+	// ExportAcknowledgementTimeout bounds how long a completed helper waits for receiver confirmation.
+	ExportAcknowledgementTimeout = 10 * time.Minute
 )
 
 // RESTExecTransport implements ExecTransport with Kubernetes SPDY exec.

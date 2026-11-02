@@ -29,7 +29,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 // TestPVCDataSaveAgainstKind verifies direct filesystem capture through a real PVC,
@@ -60,6 +62,87 @@ func TestPVCDataSaveAgainstKind(t *testing.T) {
 	extracted := filepath.Join(environment.root, "pvc-extracted")
 	environment.mustRunCLI(t, "extract PVC data", "pvc", "extract", archivePath, extracted)
 	assertExtractedPVCData(t, extracted)
+}
+
+// TestPVCExecAcknowledgesSlowReceiverAgainstKind exercises the real exec stream
+// while the receiver deliberately limits throughput.
+func TestPVCExecAcknowledgesSlowReceiverAgainstKind(t *testing.T) {
+	environment := newIntegrationEnvironment(t)
+	fixture := createPVCFixture(t, environment)
+	seedResult := environment.runtime.exec(
+		context.Background(),
+		environment.cluster+"-control-plane",
+		"sh", "-c",
+		"dd if=/dev/urandom of='"+fixture.hostPath+"/slow-stream.bin' bs=1M count=8 status=none",
+	)
+	if seedResult.Err != nil {
+		fatalCommand(t, "seed slow-stream PVC data", seedResult)
+	}
+
+	config, err := clientcmd.BuildConfigFromFlags("", environment.kubeconfig)
+	if err != nil {
+		t.Fatalf("load integration Kubernetes config: %v", err)
+	}
+	dynamicClient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		t.Fatalf("create integration dynamic client: %v", err)
+	}
+	strategy, err := pvc.NewPodStrategy(pvc.PodStrategyOptions{
+		Dynamic: dynamicClient,
+		Exec:    pvc.RESTExecTransport{Config: config},
+		Image:   fixture.helperImage,
+	})
+	if err != nil {
+		t.Fatalf("create PVC Pod strategy: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), integrationCommandTimeout)
+	defer cancel()
+	if _, err := strategy.Backup(ctx, pvc.Ref{Namespace: fixture.namespace, Name: fixture.pvc}, &slowWriter{
+		ctx:            ctx,
+		writer:         io.Discard,
+		bytesPerSecond: 1 << 20,
+	}); err != nil {
+		t.Fatalf("backup PVC through slow exec receiver: %v", err)
+	}
+}
+
+// slowWriter caps average write throughput to make exec backpressure observable.
+type slowWriter struct {
+	ctx            context.Context
+	writer         io.Writer
+	bytesPerSecond int64
+	started        time.Time
+	bytesWritten   int64
+}
+
+// Write forwards data and waits until the configured average rate permits it.
+func (w *slowWriter) Write(data []byte) (int, error) {
+	if w.bytesPerSecond <= 0 {
+		return 0, errors.New("slow writer rate must be positive")
+	}
+	if w.started.IsZero() {
+		w.started = time.Now()
+	}
+
+	written, err := w.writer.Write(data)
+	w.bytesWritten += int64(written)
+	if err != nil {
+		return written, err
+	}
+
+	deadline := w.started.Add(time.Duration(w.bytesWritten * int64(time.Second) / w.bytesPerSecond))
+	if delay := time.Until(deadline); delay > 0 {
+		timer := time.NewTimer(delay)
+		defer timer.Stop()
+		select {
+		case <-w.ctx.Done():
+			return written, w.ctx.Err()
+		case <-timer.C:
+		}
+	}
+
+	return written, nil
 }
 
 // TestPVCDataRestoreAgainstKind verifies revision selection

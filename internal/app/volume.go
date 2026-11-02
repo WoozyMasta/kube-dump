@@ -89,7 +89,56 @@ func (c *VolumeExportCommand) Execute(_ []string) error {
 		return errors.New("volume export output is required")
 	}
 
-	return pvc.ExportVolume(c.context(), c.Positional.Path, c.output)
+	if err := pvc.ExportVolume(c.context(), c.Positional.Path, c.output); err != nil {
+		return err
+	}
+
+	return waitForVolumeExportAcknowledgement(
+		c.context(),
+		c.input,
+		pvc.ExportAcknowledgementTimeout,
+	)
+}
+
+// waitForVolumeExportAcknowledgement keeps the exec process alive until the receiver confirms the tar terminator.
+func waitForVolumeExportAcknowledgement(ctx context.Context, input io.Reader, timeout time.Duration) error {
+	if ctx == nil || input == nil {
+		return errors.New("volume export acknowledgement context and input are required")
+	}
+	if timeout <= 0 {
+		return errors.New("volume export acknowledgement timeout must be positive")
+	}
+
+	type acknowledgementResult struct {
+		data []byte
+		err  error
+	}
+	result := make(chan acknowledgementResult, 1)
+	go func() {
+		data, err := io.ReadAll(io.LimitReader(input, int64(len(pvc.VolumeExportAcknowledgement)+1)))
+		result <- acknowledgementResult{data: data, err: err}
+	}()
+
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+
+	case <-timer.C:
+		return fmt.Errorf("timed out waiting %s for volume export acknowledgement", timeout)
+
+	case response := <-result:
+		if response.err != nil {
+			return fmt.Errorf("read volume export acknowledgement: %w", response.err)
+		}
+		if string(response.data) != pvc.VolumeExportAcknowledgement {
+			return errors.New("volume export receiver did not acknowledge the complete tar stream")
+		}
+
+		return nil
+	}
 }
 
 // Execute extracts the helper Pod's stdin archive into the mounted volume.

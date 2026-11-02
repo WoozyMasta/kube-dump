@@ -15,7 +15,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/woozymasta/kube-dump/v2/internal/compress"
 	"github.com/woozymasta/kube-dump/v2/internal/pvc"
@@ -33,7 +35,10 @@ func TestVolumeCommandsRoundTrip(t *testing.T) {
 	var archive bytes.Buffer
 	export := VolumeExportCommand{}
 	export.commandContext = commandContext{ctx: context.Background()}
-	export.commandStreams = commandStreams{output: &archive}
+	export.commandStreams = commandStreams{
+		output: &archive,
+		input:  strings.NewReader(pvc.VolumeExportAcknowledgement),
+	}
 	export.Positional.Path = source
 
 	if err := export.Execute(nil); err != nil {
@@ -57,6 +62,89 @@ func TestVolumeCommandsRoundTrip(t *testing.T) {
 	}
 	if string(data) != "payload" {
 		t.Fatalf("imported data = %q, want payload", data)
+	}
+}
+
+func TestVolumeExportRequiresReceiverAcknowledgement(t *testing.T) {
+	t.Parallel()
+
+	command := VolumeExportCommand{}
+	command.commandContext = commandContext{ctx: context.Background()}
+	command.commandStreams = commandStreams{
+		output: io.Discard,
+		input:  strings.NewReader(""),
+	}
+	command.Positional.Path = t.TempDir()
+
+	if err := command.Execute(nil); err == nil {
+		t.Fatal("VolumeExportCommand accepted a missing receiver acknowledgement")
+	}
+}
+
+func TestVolumeExportWaitsForReceiverAcknowledgement(t *testing.T) {
+	t.Parallel()
+
+	reader, writer := io.Pipe()
+	defer func() { _ = reader.Close() }()
+	defer func() { _ = writer.Close() }()
+
+	command := VolumeExportCommand{}
+	command.commandContext = commandContext{ctx: context.Background()}
+	input := &notifyingReader{reader: reader, started: make(chan struct{})}
+	command.commandStreams = commandStreams{output: io.Discard, input: input}
+	command.Positional.Path = t.TempDir()
+
+	completed := make(chan error, 1)
+	go func() { completed <- command.Execute(nil) }()
+
+	select {
+	case <-input.started:
+	case <-time.After(time.Second):
+		t.Fatal("VolumeExportCommand did not finish writing the archive")
+	}
+	select {
+	case err := <-completed:
+		t.Fatalf("VolumeExportCommand returned before acknowledgement: %v", err)
+	case <-time.After(20 * time.Millisecond):
+	}
+
+	if _, err := io.WriteString(writer, pvc.VolumeExportAcknowledgement); err != nil {
+		t.Fatalf("send receiver acknowledgement: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("close acknowledgement stream: %v", err)
+	}
+
+	select {
+	case err := <-completed:
+		if err != nil {
+			t.Fatalf("VolumeExportCommand() error = %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("VolumeExportCommand did not return after acknowledgement")
+	}
+}
+
+type notifyingReader struct {
+	reader  io.Reader
+	started chan struct{}
+	once    sync.Once
+}
+
+func (r *notifyingReader) Read(data []byte) (int, error) {
+	r.once.Do(func() { close(r.started) })
+	return r.reader.Read(data)
+}
+
+func TestWaitForVolumeExportAcknowledgementTimeout(t *testing.T) {
+	t.Parallel()
+
+	reader, writer := io.Pipe()
+	defer func() { _ = writer.Close() }()
+
+	err := waitForVolumeExportAcknowledgement(context.Background(), reader, time.Millisecond)
+	if err == nil || !strings.Contains(err.Error(), "timed out") {
+		t.Fatalf("waitForVolumeExportAcknowledgement() error = %v, want timeout", err)
 	}
 }
 

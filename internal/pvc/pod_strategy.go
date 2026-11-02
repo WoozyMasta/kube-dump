@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 	"time"
 
 	"filippo.io/age"
@@ -59,6 +60,8 @@ type countingWriter struct {
 	bytes int64
 	// err retains a write failure in case the exec transport does not return it.
 	err error
+	// onError notifies a protocol peer when forwarding the stream fails.
+	onError func(error)
 }
 
 // limitedBuffer bounds diagnostic output from a helper command.
@@ -194,13 +197,36 @@ func (s *PodStrategy) execVerifiedArchive(ctx context.Context, pod HelperPod, de
 	}
 
 	verifyReader, verifyWriter := io.Pipe()
+	ackReader, ackWriter := io.Pipe()
+	var ackOnce sync.Once
+	sendAcknowledgement := func(streamErr error) error {
+		var ackErr error
+		ackOnce.Do(func() {
+			if streamErr != nil {
+				ackErr = ackWriter.CloseWithError(streamErr)
+				return
+			}
+
+			if _, ackErr = io.WriteString(ackWriter, VolumeExportAcknowledgement); ackErr == nil {
+				ackErr = ackWriter.Close()
+			} else {
+				_ = ackWriter.CloseWithError(ackErr)
+			}
+		})
+
+		return ackErr
+	}
+
 	verified := make(chan struct {
 		stats ArchiveStats
 		err   error
 	}, 1)
 	go func() {
-		stats, err := verifyVolumeArchiveStream(ctx, verifyReader)
+		stats, err := verifyVolumeArchiveStream(ctx, verifyReader, func() error {
+			return sendAcknowledgement(nil)
+		})
 		if err != nil {
+			_ = sendAcknowledgement(err)
 			_ = verifyReader.CloseWithError(err)
 		} else {
 			_ = verifyReader.Close()
@@ -211,18 +237,28 @@ func (s *PodStrategy) execVerifiedArchive(ctx context.Context, pod HelperPod, de
 		}{stats: stats, err: err}
 	}()
 
-	output := &countingWriter{writer: io.MultiWriter(destination, verifyWriter)}
+	output := &countingWriter{
+		writer: io.MultiWriter(destination, verifyWriter),
+		onError: func(err error) {
+			_ = sendAcknowledgement(err)
+		},
+	}
 	execErr := s.exec(ctx, pod, []string{
 		pod.AgentBinary,
 		"volume",
 		"export",
 		pod.MountPath,
-	}, nil, output)
+	}, ackReader, output)
 	if execErr != nil {
+		_ = ackReader.CloseWithError(execErr)
+		_ = sendAcknowledgement(execErr)
 		_ = verifyWriter.CloseWithError(execErr)
 	} else if output.err != nil {
+		_ = ackReader.CloseWithError(output.err)
+		_ = sendAcknowledgement(output.err)
 		_ = verifyWriter.CloseWithError(output.err)
 	} else {
+		_ = ackReader.Close()
 		_ = verifyWriter.Close()
 	}
 
@@ -461,6 +497,9 @@ func (w *countingWriter) Write(p []byte) (int, error) {
 	}
 	if err != nil {
 		w.err = err
+		if w.onError != nil {
+			w.onError(err)
+		}
 	}
 
 	return n, err

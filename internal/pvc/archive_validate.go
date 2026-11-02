@@ -45,17 +45,26 @@ type tarEntryType uint8
 // ValidateVolumeArchive reads and validates a complete decoded PVC archive.
 // It does not touch a destination volume and retains no archive payload in memory.
 func ValidateVolumeArchive(ctx context.Context, src io.Reader) (ArchiveStats, error) {
-	return validateVolumeArchive(ctx, src, true)
+	return validateVolumeArchive(ctx, src, true, nil)
 }
 
 // verifyVolumeArchiveStream checks a producer-owned archive without retaining path indexes,
 // so the backup path uses constant memory apart from tar.Reader.
-func verifyVolumeArchiveStream(ctx context.Context, src io.Reader) (ArchiveStats, error) {
-	return validateVolumeArchive(ctx, src, false)
+func verifyVolumeArchiveStream(
+	ctx context.Context,
+	src io.Reader,
+	afterTerminator func() error,
+) (ArchiveStats, error) {
+	return validateVolumeArchive(ctx, src, false, afterTerminator)
 }
 
 // validateVolumeArchive streams one archive and optionally checks path conflicts.
-func validateVolumeArchive(ctx context.Context, src io.Reader, validatePaths bool) (ArchiveStats, error) {
+func validateVolumeArchive(
+	ctx context.Context,
+	src io.Reader,
+	validatePaths bool,
+	afterTerminator func() error,
+) (ArchiveStats, error) {
 	if ctx == nil || src == nil {
 		return ArchiveStats{}, errors.New("volume archive validation context and source are required")
 	}
@@ -87,7 +96,7 @@ func validateVolumeArchive(ctx context.Context, src io.Reader, validatePaths boo
 				return ArchiveStats{}, errors.New("volume archive is missing the root metadata record")
 			}
 
-			if err := validateTarTerminator(statsReader, beforeNext, pendingPadding); err != nil {
+			if err := validateTarTerminator(statsReader, beforeNext, pendingPadding, afterTerminator); err != nil {
 				return ArchiveStats{}, err
 			}
 
@@ -196,7 +205,11 @@ func (r *archiveStatsReader) Read(p []byte) (int, error) {
 }
 
 // validateTarTerminator checks the required two zero blocks and rejects trailing bytes.
-func validateTarTerminator(reader *archiveStatsReader, beforeNext, pendingPadding int64) error {
+func validateTarTerminator(
+	reader *archiveStatsReader,
+	beforeNext, pendingPadding int64,
+	afterTerminator func() error,
+) error {
 	terminalBytes := reader.size - beforeNext - pendingPadding
 	if terminalBytes != 2*volumeTarBlockSize {
 		return fmt.Errorf(
@@ -204,6 +217,11 @@ func validateTarTerminator(reader *archiveStatsReader, beforeNext, pendingPaddin
 			terminalBytes,
 			2*volumeTarBlockSize,
 		)
+	}
+	if afterTerminator != nil {
+		if err := afterTerminator(); err != nil {
+			return fmt.Errorf("acknowledge volume archive terminator: %w", err)
+		}
 	}
 
 	var trailing [1]byte

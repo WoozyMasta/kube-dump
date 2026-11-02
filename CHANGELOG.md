@@ -19,7 +19,8 @@ and this project adheres to [Semantic Versioning][].
 ### Fixed
 
 * PVC restore helper startup with the standard container image.
-* Reject incomplete PVC tar streams before publishing local backup artifacts.
+* Wait for PVC export receivers to acknowledge complete tar streams
+  and reject incomplete archives.
 
 ## [2.0.0][] - 2026-09-11
 
