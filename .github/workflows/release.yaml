@@ -48,7 +48,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
-          go-version: '1.27'
+          go-version: stable
 
       - uses: rvben/rumdl@v0
 
@@ -70,7 +70,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
-          go-version: '1.27'
+          go-version: stable
 
       - name: Install additional build tools
         run: make tools-build
@@ -280,11 +280,11 @@ jobs:
           artifacts: ./build/*
 
       - name: Request pkg.go.dev reindex
+        continue-on-error: true
         env:
-          MODULE: github.com/woozymasta/kube-dump/v2
           VERSION: ${{ github.ref_name }}
         run: |
-          if ! curl -sSfX POST --retry 3 --retry-delay 3 \
-            "https://pkg.go.dev/fetch/${MODULE}@${VERSION}"; then
-            echo "::warning::pkg.go.dev reindex request failed; continuing release"
-          fi
+          MODULE="$(GOWORK=off go list -m)"
+          curl --silent --show-error --fail-with-body \
+            --retry 3 --retry-delay 2 \
+            "https://proxy.golang.org/${MODULE}/@v/${VERSION}.info"
