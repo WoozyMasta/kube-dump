@@ -103,12 +103,12 @@ kind: Kustomization
 namespace: kube-dump
 
 resources:
-  - https://github.com/WoozyMasta/kube-dump//deploy/resources/cronjob?ref=v2.0.0-rc.1
+  - https://github.com/WoozyMasta/kube-dump//deploy/resources/cronjob?ref=v2.0.0-rc.2
 
 components:
-  - https://github.com/WoozyMasta/kube-dump//deploy?ref=v2.0.0-rc.1
-  - https://github.com/WoozyMasta/kube-dump//deploy/components/rbac/resource?ref=v2.0.0-rc.1
-  - https://github.com/WoozyMasta/kube-dump//deploy/components/storage/cronjob?ref=v2.0.0-rc.1
+  - https://github.com/WoozyMasta/kube-dump//deploy?ref=v2.0.0-rc.2
+  - https://github.com/WoozyMasta/kube-dump//deploy/components/rbac/resource?ref=v2.0.0-rc.2
+  - https://github.com/WoozyMasta/kube-dump//deploy/components/storage/cronjob?ref=v2.0.0-rc.2
 
 patches:
   - path: patches/resource-save-cronjob.yaml

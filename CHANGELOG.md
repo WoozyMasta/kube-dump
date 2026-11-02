@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning][].
 ### Removed
 -->
 
-## Unreleased
+## [2.0.0-rc.2][] - 2026-11-02
 
 ### Added
 
@@ -29,7 +29,9 @@ and this project adheres to [Semantic Versioning][].
 * Wait for PVC export receivers to acknowledge complete tar streams
   and reject incomplete archives.
 
-## [2.0.0][] - 2026-09-11
+[2.0.0-rc.2]: https://github.com/WoozyMasta/a2s/compare/v2.0.0-rc.1...v2.0.0-rc.2
+
+## [2.0.0-rc.1][] - 2026-09-11
 
 ### Added
 
@@ -54,7 +56,7 @@ and this project adheres to [Semantic Versioning][].
   xz and bzip2 support from v1 was removed.
 * v2 is licensed under the MIT License.
 
-[2.0.0]: https://github.com/WoozyMasta/a2s/compare/1.1.2...v2.0.0
+[2.0.0-rc.1]: https://github.com/WoozyMasta/a2s/compare/1.1.2...v2.0.0-rc.1
 
 ## [1.1.2](https://github.com/WoozyMasta/kube-dump/releases/tag/1.1.2) - 2022-05-19
 

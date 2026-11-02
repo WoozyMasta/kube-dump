@@ -50,16 +50,16 @@ kube-dump resource save dir ./backup \
 Образы публикуются в следующих реестрах:
 
 ```text
-ghcr.io/woozymasta/kube-dump:2.0.0-rc.1
-docker.io/woozymasta/kube-dump:2.0.0-rc.1
+ghcr.io/woozymasta/kube-dump:2.0.0-rc.2
+docker.io/woozymasta/kube-dump:2.0.0-rc.2
 ```
 
 Отдельно публикуется debug-вариант с оболочкой
 и утилитами для отладки и скриптов CI:
 
 ```text
-ghcr.io/woozymasta/kube-dump:2.0.0-rc.1-debug
-docker.io/woozymasta/kube-dump:2.0.0-rc.1-debug
+ghcr.io/woozymasta/kube-dump:2.0.0-rc.2-debug
+docker.io/woozymasta/kube-dump:2.0.0-rc.2-debug
 ```
 
 Для автоматизации закрепляйте конкретную версию образа
@@ -79,10 +79,10 @@ docker.io/woozymasta/kube-dump:2.0.0-rc.1-debug
 
 <!-- links -->
 
-[Linux amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.1/kube-dump-linux-amd64
-[Linux arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.1/kube-dump-linux-arm64
-[macOS amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.1/kube-dump-darwin-amd64
-[macOS arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.1/kube-dump-darwin-arm64
-[Windows amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.1/kube-dump-windows-amd64.exe
-[Windows arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.1/kube-dump-windows-arm64.exe
+[Linux amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.2/kube-dump-linux-amd64
+[Linux arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.2/kube-dump-linux-arm64
+[macOS amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.2/kube-dump-darwin-amd64
+[macOS arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.2/kube-dump-darwin-arm64
+[Windows amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.2/kube-dump-windows-amd64.exe
+[Windows arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.2/kube-dump-windows-arm64.exe
 [GitHub Releases]: https://github.com/WoozyMasta/kube-dump/releases

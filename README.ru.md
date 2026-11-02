@@ -48,7 +48,7 @@ arm64 | [Linux arm64] | [macOS arm64] | [Windows arm64]
 Если установлен Go 1.27 или новее, можно установить текущую версию командой:
 
 ```shell
-go install github.com/woozymasta/kube-dump/v2/cmd/kube-dump@v2.0.0-rc.1
+go install github.com/woozymasta/kube-dump/v2/cmd/kube-dump@v2.0.0-rc.2
 ```
 
 Для запуска внутри Kubernetes доступны готовые
@@ -57,16 +57,16 @@ go install github.com/woozymasta/kube-dump/v2/cmd/kube-dump@v2.0.0-rc.1
 Образ контейнера публикуется в следующих реестрах:
 
 ```text
-ghcr.io/woozymasta/kube-dump:2.0.0-rc.1
-docker.io/woozymasta/kube-dump:2.0.0-rc.1
+ghcr.io/woozymasta/kube-dump:2.0.0-rc.2
+docker.io/woozymasta/kube-dump:2.0.0-rc.2
 ```
 
 Для CI, отладки и скриптов доступен вариант с shell и дополнительными
 утилитами:
 
 ```text
-ghcr.io/woozymasta/kube-dump:2.0.0-rc.1-debug
-docker.io/woozymasta/kube-dump:2.0.0-rc.1-debug
+ghcr.io/woozymasta/kube-dump:2.0.0-rc.2-debug
+docker.io/woozymasta/kube-dump:2.0.0-rc.2-debug
 ```
 
 Подробные варианты установки описаны в [документации][docs].
@@ -147,9 +147,9 @@ Kubernetes-манифестов они также определяют прав�
 [export]: ./internal/profile/builtin/export.yaml
 [raw]: ./internal/profile/builtin/raw.yaml
 
-[Linux amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.1/kube-dump-linux-amd64
-[Linux arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.1/kube-dump-linux-arm64
-[macOS amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.1/kube-dump-darwin-amd64
-[macOS arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.1/kube-dump-darwin-arm64
-[Windows amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.1/kube-dump-windows-amd64.exe
-[Windows arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.1/kube-dump-windows-arm64.exe
+[Linux amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.2/kube-dump-linux-amd64
+[Linux arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.2/kube-dump-linux-arm64
+[macOS amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.2/kube-dump-darwin-amd64
+[macOS arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.2/kube-dump-darwin-arm64
+[Windows amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.2/kube-dump-windows-amd64.exe
+[Windows arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.2/kube-dump-windows-arm64.exe

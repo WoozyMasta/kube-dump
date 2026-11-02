@@ -46,7 +46,7 @@ arm64 | [Linux arm64] | [macOS arm64] | [Windows arm64]
 如果已安装 Go 1.27 或更高版本，可以执行以下命令安装当前版本：
 
 ```shell
-go install github.com/woozymasta/kube-dump/v2/cmd/kube-dump@v2.0.0-rc.1
+go install github.com/woozymasta/kube-dump/v2/cmd/kube-dump@v2.0.0-rc.2
 ```
 
 如果需要在 Kubernetes 中运行，可以使用现成的
@@ -55,15 +55,15 @@ go install github.com/woozymasta/kube-dump/v2/cmd/kube-dump@v2.0.0-rc.1
 容器镜像发布在以下仓库：
 
 ```text
-ghcr.io/woozymasta/kube-dump:2.0.0-rc.1
-docker.io/woozymasta/kube-dump:2.0.0-rc.1
+ghcr.io/woozymasta/kube-dump:2.0.0-rc.2
+docker.io/woozymasta/kube-dump:2.0.0-rc.2
 ```
 
 对于 CI、调试和脚本，可以使用包含 shell 及其他工具的镜像：
 
 ```text
-ghcr.io/woozymasta/kube-dump:2.0.0-rc.1-debug
-docker.io/woozymasta/kube-dump:2.0.0-rc.1-debug
+ghcr.io/woozymasta/kube-dump:2.0.0-rc.2-debug
+docker.io/woozymasta/kube-dump:2.0.0-rc.2-debug
 ```
 
 更多安装方式请参阅[文档][docs]。
@@ -137,9 +137,9 @@ YAML 中的敏感值可以使用 age 或确定性的 AES-256-SIV 加密。资源
 [export]: ./internal/profile/builtin/export.yaml
 [raw]: ./internal/profile/builtin/raw.yaml
 
-[Linux amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.1/kube-dump-linux-amd64
-[Linux arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.1/kube-dump-linux-arm64
-[macOS amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.1/kube-dump-darwin-amd64
-[macOS arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.1/kube-dump-darwin-arm64
-[Windows amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.1/kube-dump-windows-amd64.exe
-[Windows arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.1/kube-dump-windows-arm64.exe
+[Linux amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.2/kube-dump-linux-amd64
+[Linux arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.2/kube-dump-linux-arm64
+[macOS amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.2/kube-dump-darwin-amd64
+[macOS arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.2/kube-dump-darwin-arm64
+[Windows amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.2/kube-dump-windows-amd64.exe
+[Windows arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.2/kube-dump-windows-arm64.exe

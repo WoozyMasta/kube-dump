@@ -9,7 +9,7 @@
 Для шагов CI используйте образ с суффиксом `-debug`:
 
 ```text
-ghcr.io/woozymasta/kube-dump:2.0.0-rc.1-debug
+ghcr.io/woozymasta/kube-dump:2.0.0-rc.2-debug
 ```
 
 Основной образ намеренно собран на `scratch`
@@ -36,7 +36,7 @@ ghcr.io/woozymasta/kube-dump:2.0.0-rc.1-debug
 Пример для запуска по расписанию:
 
 ```yaml
-image: ghcr.io/woozymasta/kube-dump:2.0.0-rc.1-debug
+image: ghcr.io/woozymasta/kube-dump:2.0.0-rc.2-debug
 
 stages:
   - backup
@@ -137,7 +137,7 @@ jobs:
   backup:
     if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
-    container: ghcr.io/woozymasta/kube-dump:2.0.0-rc.1-debug
+    container: ghcr.io/woozymasta/kube-dump:2.0.0-rc.2-debug
     steps:
       - uses: actions/checkout@v4
       - name: Backup resources
@@ -166,7 +166,7 @@ jobs:
 ```yaml
 steps:
   - name: backup
-    image: ghcr.io/woozymasta/kube-dump:2.0.0-rc.1-debug
+    image: ghcr.io/woozymasta/kube-dump:2.0.0-rc.2-debug
     script: |
       kube-dump resource save s3 --s3-uri s3://backup/production/ \
         --profile /workspace/source/profiles/production.yaml --no-progress

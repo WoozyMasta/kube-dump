@@ -102,12 +102,12 @@ kind: Kustomization
 namespace: kube-dump
 
 resources:
-  - https://github.com/WoozyMasta/kube-dump//deploy/resources/cronjob?ref=v2.0.0-rc.1
+  - https://github.com/WoozyMasta/kube-dump//deploy/resources/cronjob?ref=v2.0.0-rc.2
 
 components:
-  - https://github.com/WoozyMasta/kube-dump//deploy?ref=v2.0.0-rc.1
-  - https://github.com/WoozyMasta/kube-dump//deploy/components/rbac/resource?ref=v2.0.0-rc.1
-  - https://github.com/WoozyMasta/kube-dump//deploy/components/storage/cronjob?ref=v2.0.0-rc.1
+  - https://github.com/WoozyMasta/kube-dump//deploy?ref=v2.0.0-rc.2
+  - https://github.com/WoozyMasta/kube-dump//deploy/components/rbac/resource?ref=v2.0.0-rc.2
+  - https://github.com/WoozyMasta/kube-dump//deploy/components/storage/cronjob?ref=v2.0.0-rc.2
 
 configMapGenerator:
   - name: kube-dump
@@ -168,7 +168,7 @@ rather than a literal in a command that is saved in shell history.
 Mount file-based keys and profiles separately;
 the environment variable then contains the mounted file path.
 
-The `?ref=v2.0.0-rc.1` references pin the Kustomize manifests.
+The `?ref=v2.0.0-rc.2` references pin the Kustomize manifests.
 Change them to the desired release tag when upgrading kube-dump.
 
 ## Verify and apply
@@ -211,12 +211,12 @@ kind: Kustomization
 namespace: kube-dump
 
 resources:
-  - https://github.com/WoozyMasta/kube-dump//deploy/resources/pod?ref=v2.0.0-rc.1
+  - https://github.com/WoozyMasta/kube-dump//deploy/resources/pod?ref=v2.0.0-rc.2
 
 components:
-  - https://github.com/WoozyMasta/kube-dump//deploy?ref=v2.0.0-rc.1
-  - https://github.com/WoozyMasta/kube-dump//deploy/components/rbac/resource?ref=v2.0.0-rc.1
-  - https://github.com/WoozyMasta/kube-dump//deploy/components/storage/pod?ref=v2.0.0-rc.1
+  - https://github.com/WoozyMasta/kube-dump//deploy?ref=v2.0.0-rc.2
+  - https://github.com/WoozyMasta/kube-dump//deploy/components/rbac/resource?ref=v2.0.0-rc.2
+  - https://github.com/WoozyMasta/kube-dump//deploy/components/storage/pod?ref=v2.0.0-rc.2
 
 patches:
   - path: patches/resource-save-pod.yaml

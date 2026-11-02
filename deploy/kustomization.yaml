@@ -4,7 +4,7 @@ kind: Component
 
 images:
   - name: ghcr.io/woozymasta/kube-dump
-    newTag: &version 2.0.0-rc.1
+    newTag: &version 2.0.0-rc.2
 
 labels:
   - pairs:
