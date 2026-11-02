@@ -272,7 +272,7 @@ tool-benchstat:
 release-notes:
 	@awk '\
 	/^<!--/,/^-->/ { next } \
-	/^## \[[0-9]+\.[0-9]+\.[0-9]+\]/ { if (found) exit; found=1; next } \
+	/^## \[[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?\]/ { if (found) exit; found=1; next } \
 	found { \
 		if (/^## \[/) { exit } \
 		if (/^$$/) { flush(); print; next } \

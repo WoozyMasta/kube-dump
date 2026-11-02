@@ -253,7 +253,8 @@ jobs:
             printf '```sh\n'
             printf 'ghcr.io/woozymasta/kube-dump:%s\n' "$image_tag"
             printf 'docker.io/woozymasta/kube-dump:%s\n' "$image_tag"
-            printf '\n## Debug container images\n\n'
+            printf '```\n\n'
+            printf '## Debug container images\n\n'
             printf '```sh\n'
             printf 'ghcr.io/woozymasta/kube-dump:%s-debug\n' "$image_tag"
             printf 'docker.io/woozymasta/kube-dump:%s-debug\n' "$image_tag"
