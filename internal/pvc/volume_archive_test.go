@@ -264,11 +264,11 @@ func TestVolumeAgentRoundTripsPermissionMatrix(t *testing.T) {
 	}
 	fixtures := []fixture{
 		{name: "directory-plain", mode: 0o755, dir: true},
-		{name: "directory-setgid", mode: 0o2755, dir: true},
-		{name: "directory-sticky", mode: 0o1755, dir: true},
+		{name: "directory-setgid", mode: 0o755 | os.ModeSetgid, dir: true},
+		{name: "directory-sticky", mode: 0o755 | os.ModeSticky, dir: true},
 		{name: "file-plain", mode: 0o640},
-		{name: "file-setuid", mode: 0o4755},
-		{name: "file-setgid", mode: 0o2755},
+		{name: "file-setuid", mode: 0o755 | os.ModeSetuid},
+		{name: "file-setgid", mode: 0o755 | os.ModeSetgid},
 	}
 
 	source := t.TempDir()
@@ -301,7 +301,8 @@ func TestVolumeAgentRoundTripsPermissionMatrix(t *testing.T) {
 		if err != nil {
 			t.Fatalf("stat restored %s: %v", item.name, err)
 		}
-		if got := info.Mode() & 0o7777; got != item.mode {
+		const permissionBits = os.ModePerm | os.ModeSetuid | os.ModeSetgid | os.ModeSticky
+		if got := info.Mode() & permissionBits; got != item.mode {
 			t.Errorf("restored %s mode = %o, want %o", item.name, got, item.mode)
 		}
 	}
