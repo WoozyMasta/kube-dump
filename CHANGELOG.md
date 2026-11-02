@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning][].
 
 ## Unreleased
 
+### Added
+
+* Optional uncompressed PVC archives with `--compression=none`.
+
 ### Fixed
 
 * PVC restore helper startup with the standard container image.

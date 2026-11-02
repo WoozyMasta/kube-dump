@@ -13,6 +13,8 @@ import (
 	"fmt"
 	"io"
 	"strings"
+
+	"github.com/woozymasta/kube-dump/v2/internal/compress"
 )
 
 const metadataVersion = 1
@@ -136,6 +138,9 @@ func (m Metadata) Validate() error {
 
 	if m.Compression == "" {
 		return errors.New("pvc metadata compression is required")
+	}
+	if err := (compress.Config{Algorithm: compress.Algorithm(m.Compression)}).Validate(); err != nil {
+		return fmt.Errorf("validate pvc metadata compression: %w", err)
 	}
 
 	if m.Strategy == SnapshotCopy && !m.Portable {

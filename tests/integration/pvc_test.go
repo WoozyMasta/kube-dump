@@ -9,7 +9,6 @@ package integration_test
 import (
 	"archive/tar"
 	"bytes"
-	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -23,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/woozymasta/kube-dump/v2/internal/compress"
 	"github.com/woozymasta/kube-dump/v2/internal/pvc"
 	"go.yaml.in/yaml/v3"
 	corev1 "k8s.io/api/core/v1"
@@ -61,6 +61,42 @@ func TestPVCDataSaveAgainstKind(t *testing.T) {
 
 	extracted := filepath.Join(environment.root, "pvc-extracted")
 	environment.mustRunCLI(t, "extract PVC data", "pvc", "extract", archivePath, extracted)
+	assertExtractedPVCData(t, extracted)
+}
+
+// TestPVCUncompressedDataSaveAndExtractAgainstKind verifies raw tar artifacts end to end.
+func TestPVCUncompressedDataSaveAndExtractAgainstKind(t *testing.T) {
+	environment := newIntegrationEnvironment(t)
+	fixture := createPVCFixture(t, environment)
+	destination := filepath.Join(environment.root, "pvc-uncompressed-capture")
+
+	environment.mustRunKubeCLI(t, "save uncompressed PVC data",
+		"pvc", "save", "dir", destination,
+		"--strategy", "pod",
+		"--image", fixture.helperImage,
+		"--namespace", fixture.namespace,
+		"--pvc", fixture.pvc,
+		"--compression", "none",
+	)
+
+	archivePath, archiveSize := findPVCArchive(t, destination, "data.tar")
+	if archiveSize == 0 {
+		t.Fatal("uncompressed PVC archive is empty")
+	}
+	archiveFile, err := os.Open(archivePath)
+	if err != nil {
+		t.Fatalf("open uncompressed PVC archive: %v", err)
+	}
+	if _, err := pvc.ValidateVolumeArchive(context.Background(), archiveFile); err != nil {
+		_ = archiveFile.Close()
+		t.Fatalf("validate uncompressed PVC archive: %v", err)
+	}
+	if err := archiveFile.Close(); err != nil {
+		t.Fatalf("close uncompressed PVC archive: %v", err)
+	}
+
+	extracted := filepath.Join(environment.root, "pvc-uncompressed-extracted")
+	environment.mustRunCLI(t, "extract uncompressed PVC data", "pvc", "extract", archivePath, extracted)
 	assertExtractedPVCData(t, extracted)
 }
 
@@ -203,7 +239,7 @@ func TestPVCEncryptedDataSaveAndExtractAgainstKind(t *testing.T) {
 		"--image", fixture.helperImage,
 		"--namespace", fixture.namespace,
 		"--pvc", fixture.pvc,
-		"--compression", "gzip",
+		"--compression", "none",
 		"--recipients-file", keys.recipient,
 	)
 
@@ -212,7 +248,7 @@ func TestPVCEncryptedDataSaveAndExtractAgainstKind(t *testing.T) {
 	)
 	requireContains(t, inspectResult.Stdout, "PVC artifacts: 1")
 
-	archivePath, archiveSize := findPVCArchive(t, destination, "data.tar.gz.age")
+	archivePath, archiveSize := findPVCArchive(t, destination, "data.tar.age")
 	if archiveSize == 0 {
 		t.Fatal("encrypted PVC archive is empty")
 	}
@@ -275,7 +311,7 @@ func TestPVCDataS3SaveAndDownloadAgainstKind(t *testing.T) {
 		"--image", fixture.helperImage,
 		"--namespace", fixture.namespace,
 		"--pvc", fixture.pvc,
-		"--compression", "gzip",
+		"--compression", "none",
 		"--s3-pod-endpoint", s3.podEndpoint,
 	)
 	environment.mustRunKubeCLI(t, "save PVC data to S3", saveArgs...)
@@ -348,7 +384,7 @@ func TestPVCDataS3SaveAndDownloadAgainstKind(t *testing.T) {
 	}, s3Args(uri, s3)...)
 	environment.mustRunCLI(t, "download PVC data from S3", downloadArgs...)
 
-	archivePath, archiveSize := findPVCArchive(t, destination, "data.tar.gz")
+	archivePath, archiveSize := findPVCArchive(t, destination, "data.tar")
 	if archiveSize == 0 {
 		t.Fatal("downloaded PVC archive is empty")
 	}
@@ -412,9 +448,9 @@ func assertPVCArchive(t *testing.T, archivePath string, encrypted bool) {
 	if err != nil {
 		t.Fatalf("read PVC archive: %v", err)
 	}
-	reader, err := gzip.NewReader(bytes.NewReader(archiveData))
+	reader, err := compress.NewReader(bytes.NewReader(archiveData), compress.Algorithm(metadata.Compression))
 	if err != nil {
-		t.Fatalf("open PVC gzip stream: %v", err)
+		t.Fatalf("open PVC data stream: %v", err)
 	}
 	payload, err := io.ReadAll(reader)
 	closeErr := reader.Close()
@@ -422,7 +458,7 @@ func assertPVCArchive(t *testing.T, archivePath string, encrypted bool) {
 		t.Fatalf("read PVC tar stream: %v", err)
 	}
 	if closeErr != nil {
-		t.Fatalf("close PVC gzip stream: %v", closeErr)
+		t.Fatalf("close PVC data stream: %v", closeErr)
 	}
 
 	digest := sha256.Sum256(payload)

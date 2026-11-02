@@ -240,6 +240,8 @@ func isPVCDataPath(name string) bool {
 		parts[4] == "data.tar.gz.age" ||
 		parts[4] == "data.tar.zst" ||
 		parts[4] == "data.tar.zst.age" ||
+		parts[4] == "data.tar" ||
+		parts[4] == "data.tar.age" ||
 		parts[4] == "snapshot.json"
 }
 

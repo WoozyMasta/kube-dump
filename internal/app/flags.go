@@ -364,7 +364,7 @@ type PvcCommand struct {
 	Encrypt  EncryptArchiveCommand `command:"encrypt"  description:"Encrypt a local PVC archive with age"`
 
 	kube.ClientOptions
-	Save PvcSaveCommand `command:"save" description:"Capture PVC filesystems as compressed archives"`
+	Save PvcSaveCommand `command:"save" description:"Capture PVC filesystems as archives"`
 }
 
 // InspectPvcCommand groups PVC artifact inspection sources.
@@ -491,7 +491,7 @@ type PvcCaptureOptions struct {
 
 	Strategy         pvc.Strategy       `long:"strategy"           description:"PVC data acquisition strategy" default:"snapshot-copy" choices:"pod;snapshot-copy"`
 	SnapshotClass    string             `long:"snapshot-class"     description:"VolumeSnapshotClass for snapshot-based strategies"`
-	Compression      compress.Algorithm `long:"compression"        description:"Compression for portable PVC data" default:"zstd" choices:"zstd;gzip"`
+	Compression      compress.Algorithm `long:"compression"        description:"Compression for portable PVC data" default:"zstd" choices:"zstd;gzip;none"`
 	Namespaces       []string           `long:"namespace"          description:"Limit PVC data backup to these namespaces" env-delim:"," short:"n"`
 	PVCs             []string           `long:"pvc"                description:"PVC name or glob pattern; repeatable" env-delim:","`
 	Concurrency      int                `long:"concurrency"        description:"Maximum parallel PVC backup lifecycles" default:"4" min:"1"`
@@ -1036,7 +1036,7 @@ type VolumeUploadS3Options struct {
 
 // VolumeUploadPVCOptions contains archive settings for the internal upload helper.
 type VolumeUploadPVCOptions struct {
-	Compression compress.Algorithm `auto-env:"false" long:"compression" default:"zstd"          choices:"zstd;gzip"         description:"PVC archive compression"`
+	Compression compress.Algorithm `auto-env:"false" long:"compression" default:"zstd"          choices:"zstd;gzip;none"    description:"PVC archive compression"`
 	Strategy    pvc.Strategy       `auto-env:"false" long:"strategy"    default:"snapshot-copy" choices:"pod;snapshot-copy" description:"PVC backup strategy"`
 }
 
@@ -1074,7 +1074,7 @@ type VolumeDownloadS3Options struct {
 
 // VolumeDownloadPVCOptions contains archive settings for the internal download helper.
 type VolumeDownloadPVCOptions struct {
-	Compression compress.Algorithm `auto-env:"false" long:"compression" description:"PVC archive compression" choices:"zstd;gzip"`
+	Compression compress.Algorithm `auto-env:"false" long:"compression" choices:"zstd;gzip;none" description:"PVC archive compression"`
 }
 
 // VolumeDownloadEncryptionOptions contains decryption settings for the internal download helper.

@@ -942,7 +942,7 @@ Capture PVC filesystems and store archives locally
 |`--helper-binary-path`|Path to the volume agent inside the helper container; default: /bin/kube-dump, then kube-dump from PATH||`$KUBE_DUMP_HELPER_BINARY_PATH`|no|
 |`--strategy`|PVC data acquisition strategy; choices: `pod, snapshot-copy`|`snapshot-copy`|`$KUBE_DUMP_STRATEGY`|no|
 |`--snapshot-class`|VolumeSnapshotClass for snapshot-based strategies||`$KUBE_DUMP_SNAPSHOT_CLASS`|no|
-|`--compression`|Compression for portable PVC data; choices: `zstd, gzip`|`zstd`|`$KUBE_DUMP_COMPRESSION`|no|
+|`--compression`|Compression for portable PVC data; choices: `zstd, gzip, none`|`zstd`|`$KUBE_DUMP_COMPRESSION`|no|
 |`-n`, `--namespace`|Limit PVC data backup to these namespaces||`$KUBE_DUMP_NAMESPACE` (`,`)|no|
 |`--pvc`|PVC name or glob pattern; repeatable||`$KUBE_DUMP_PVC` (`,`)|no|
 |`--concurrency`|Maximum parallel PVC backup lifecycles|`4`|`$KUBE_DUMP_CONCURRENCY`|no|
@@ -1006,7 +1006,7 @@ Capture PVC filesystems and store archives in S3
 |`--helper-binary-path`|Path to the volume agent inside the helper container; default: /bin/kube-dump, then kube-dump from PATH||`$KUBE_DUMP_HELPER_BINARY_PATH`|no|
 |`--strategy`|PVC data acquisition strategy; choices: `pod, snapshot-copy`|`snapshot-copy`|`$KUBE_DUMP_STRATEGY`|no|
 |`--snapshot-class`|VolumeSnapshotClass for snapshot-based strategies||`$KUBE_DUMP_SNAPSHOT_CLASS`|no|
-|`--compression`|Compression for portable PVC data; choices: `zstd, gzip`|`zstd`|`$KUBE_DUMP_COMPRESSION`|no|
+|`--compression`|Compression for portable PVC data; choices: `zstd, gzip, none`|`zstd`|`$KUBE_DUMP_COMPRESSION`|no|
 |`-n`, `--namespace`|Limit PVC data backup to these namespaces||`$KUBE_DUMP_NAMESPACE` (`,`)|no|
 |`--pvc`|PVC name or glob pattern; repeatable||`$KUBE_DUMP_PVC` (`,`)|no|
 |`--concurrency`|Maximum parallel PVC backup lifecycles|`4`|`$KUBE_DUMP_CONCURRENCY`|no|

@@ -1,7 +1,7 @@
 # PVC data
 
 The `pvc` command saves the contents of `PersistentVolumeClaim` objects.
-Each PVC is stored as a separate compressed archive,
+Each PVC is stored as a separate archive,
 so volume data can use a different schedule and retention period from YAML.
 
 See the complete list of options in the [CLI reference](../../cli.md#pvc).
@@ -52,9 +52,27 @@ kube-dump pvc save dir ./backup --keep 0
 
 ## Archive contract
 
-Each copy contains `metadata.yaml` and one compressed data stream.
+Each copy contains `metadata.yaml` and one tar stream.
+By default, the stream uses zstd compression;
+gzip and `none` are also available:
+
+```shell
+kube-dump pvc save dir ./backup --compression none
+```
+
+Without compression, the file is named `data.tar`
+or `data.tar.age` when encrypted.
 The metadata records the format, strategy, compression, uncompressed size,
 SHA-256 digest, and encryption state. `sizeBytes` is the uncompressed size.
+
+> [!NOTE]
+> If a PVC backup occasionally fails with `unexpected EOF`,
+> try `--compression none`.
+> It reduces CPU work but increases the archive size
+> and data sent through Kubernetes exec. Check the network and helper Pod load.
+> Local backups are compressed by `kube-dump`;
+> direct S3 backups are compressed by the helper.
+> Increase helper resources only if it is the bottleneck.
 
 Archives preserve regular files, directories, relative symbolic links,
 permissions, numeric UID/GID, and modification time.

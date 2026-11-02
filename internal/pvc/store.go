@@ -448,9 +448,14 @@ func (s VolumeStore) ListArtifacts() ([]Artifact, error) {
 // so consumers can detect encryption without opening the payload first.
 func volumeDataName(algorithm string, encrypted bool) string {
 	name := "snapshot.json"
-	if algorithm == string(compress.Gzip) {
+	switch compress.Algorithm(algorithm) {
+	case compress.Gzip:
 		name = "data.tar.gz"
-	} else if algorithm != "none" {
+
+	case compress.None:
+		name = "data.tar"
+
+	case compress.Zstandard, "":
 		name = "data.tar.zst"
 	}
 

@@ -29,12 +29,13 @@ func TestInspectPVCObjectsUsesS3ObjectSizes(t *testing.T) {
 	objects := []export.StoredObject{
 		{Key: "backup/volumes/prod/data/20260902T120000Z/data.tar.zst", Size: 1024},
 		{Key: "backup/volumes/prod/encrypted/20260902T120001Z/data.tar.gz.age", Size: 512},
+		{Key: "backup/volumes/prod/raw/20260902T120002Z/data.tar", Size: 256},
 		{Key: "backup/volumes/prod/logs/20260902T120002Z/metadata.yaml", Size: 90},
 		{Key: "backup/volumes/prod/logs/20260902T120002Z/snapshot.json", Size: 2048},
 	}
 
 	report := inspectPVCObjects("backup", objects)
-	if report.PVCArtifacts != 3 || report.PVCBytes != 3584 {
+	if report.PVCArtifacts != 4 || report.PVCBytes != 3840 {
 		t.Fatalf("report = %#v", report)
 	}
 }

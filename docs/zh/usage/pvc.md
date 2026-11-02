@@ -1,7 +1,7 @@
 # PVC 数据
 
 `pvc` 命令保存 `PersistentVolumeClaim` 对象的内容。
-每个 PVC 都保存为单独的压缩归档，因此卷数据可以使用与 YAML 不同的计划和保留策略。
+每个 PVC 都保存为单独的归档，因此卷数据可以使用与 YAML 不同的计划和保留策略。
 
 完整选项列表请参阅 [CLI 参考](../../cli.md#pvc)。
 
@@ -50,9 +50,22 @@ kube-dump pvc save dir ./backup --keep 0
 
 ## 归档格式
 
-每个副本包含 `metadata.yaml` 和一个压缩数据流。
+每个副本包含 `metadata.yaml` 和一个 tar 数据流。
+默认使用 zstd 压缩，也可以选择 gzip 或 `none`（不压缩）：
+
+```shell
+kube-dump pvc save dir ./backup --compression none
+```
+
+不压缩时，文件名为 `data.tar`；加密后为 `data.tar.age`。
 元数据记录格式、策略、压缩方式、未压缩大小、SHA-256 摘要和加密状态。
 `sizeBytes` 是未压缩大小。
+
+> [!NOTE]
+> 如果 PVC 备份偶尔以 `unexpected EOF` 失败，可以试试
+> `--compression none`。这会降低 CPU 负载，但会增大归档和通过 Kubernetes exec
+> 传输的数据量。请检查网络和 helper Pod 的负载。本地备份由 `kube-dump`
+> 压缩，直接写入 S3 时由 helper 压缩。只有确认 helper 是瓶颈时，增加它的资源才有帮助。
 
 归档会保留普通文件、目录、相对符号链接、权限位、数字 UID/GID 和修改时间。
 不会保留扩展属性、ACL、稀疏文件、硬链接拓扑、设备文件或其他特殊文件。

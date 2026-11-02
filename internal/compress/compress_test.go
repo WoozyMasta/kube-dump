@@ -10,7 +10,7 @@ func TestRoundTrip(t *testing.T) {
 	t.Parallel()
 
 	data := bytes.Repeat([]byte("kube-dump canonical state\n"), 128)
-	for _, algorithm := range []Algorithm{Zstandard, Gzip} {
+	for _, algorithm := range []Algorithm{Zstandard, Gzip, None} {
 		t.Run(string(algorithm), func(t *testing.T) {
 			compressed, err := encode(data, Config{Algorithm: algorithm})
 			if err != nil {
@@ -39,7 +39,7 @@ func TestOutputIsDeterministic(t *testing.T) {
 	t.Parallel()
 
 	data := []byte("stable backup bytes")
-	for _, algorithm := range []Algorithm{Zstandard, Gzip} {
+	for _, algorithm := range []Algorithm{Zstandard, Gzip, None} {
 		first, err := encode(data, Config{Algorithm: algorithm})
 		if err != nil {
 			t.Fatalf("first encode() error = %v", err)
@@ -62,6 +62,9 @@ func TestConfigRejectsUnsupportedCompression(t *testing.T) {
 	}
 	if err := (Config{Algorithm: Gzip, Level: 10}).Validate(); err == nil {
 		t.Fatal("Config.Validate() accepted invalid gzip level")
+	}
+	if err := (Config{Algorithm: None, Level: 1}).Validate(); err == nil {
+		t.Fatal("Config.Validate() accepted a level with compression disabled")
 	}
 }
 

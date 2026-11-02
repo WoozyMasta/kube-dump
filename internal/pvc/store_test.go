@@ -97,6 +97,26 @@ func TestVolumeStoreWriteAndOpenData(t *testing.T) {
 	}
 }
 
+func TestDataFilenameForCompression(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		algorithm string
+		encrypted bool
+		want      string
+	}{
+		{algorithm: string(compress.Zstandard), want: "data.tar.zst"},
+		{algorithm: string(compress.Gzip), want: "data.tar.gz"},
+		{algorithm: string(compress.None), want: "data.tar"},
+		{algorithm: string(compress.None), encrypted: true, want: "data.tar.age"},
+	}
+	for _, test := range tests {
+		if got := DataFilename(test.algorithm, test.encrypted); got != test.want {
+			t.Errorf("DataFilename(%q, %t) = %q, want %q", test.algorithm, test.encrypted, got, test.want)
+		}
+	}
+}
+
 func TestVolumeStoreReadMetadataRejectsOversizedFile(t *testing.T) {
 	t.Parallel()
 

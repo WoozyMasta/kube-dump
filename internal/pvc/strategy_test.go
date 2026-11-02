@@ -15,6 +15,15 @@ func TestMetadataValidation(t *testing.T) {
 	if err := metadata.Validate(); err != nil {
 		t.Fatalf("Metadata.Validate() error = %v", err)
 	}
+
+	metadata.Compression = "none"
+	if err := metadata.Validate(); err != nil {
+		t.Fatalf("Metadata.Validate() rejected uncompressed archives: %v", err)
+	}
+	metadata.Compression = "unknown"
+	if err := metadata.Validate(); err == nil {
+		t.Fatal("Metadata.Validate() accepted an unknown compression algorithm")
+	}
 }
 
 func TestPVCRefValidationRejectsPathComponents(t *testing.T) {

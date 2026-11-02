@@ -168,6 +168,12 @@ func TestInspectCountsPVCData(t *testing.T) {
 		t.Fatalf("Writer.Add() error = %v", err)
 	}
 	if err := writer.Add(Entry{
+		Path: "volumes/default/database/20260902T120001Z/data.tar.age", Size: 10,
+		Reader: bytes.NewReader(make([]byte, 10)),
+	}); err != nil {
+		t.Fatalf("Writer.Add() uncompressed PVC payload error = %v", err)
+	}
+	if err := writer.Add(Entry{
 		Path: "volumes/default/database/20260902T120000Z/metadata.yaml", Size: 1,
 		Reader: bytes.NewReader([]byte("x")),
 	}); err != nil {
@@ -181,7 +187,7 @@ func TestInspectCountsPVCData(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Inspect() error = %v", err)
 	}
-	if report.PVCArtifacts != 1 || report.PVCBytes != 42 || report.Objects != 0 {
+	if report.PVCArtifacts != 2 || report.PVCBytes != 52 || report.Objects != 0 {
 		t.Fatalf("Inspect() report = %#v", report)
 	}
 }

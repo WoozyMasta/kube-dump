@@ -519,8 +519,12 @@ func isPVCDataFile(root, file string) bool {
 // isPVCDataName identifies a canonical PVC payload filename.
 func isPVCDataName(name string) bool {
 	switch name {
-	case "data.tar.gz", "data.tar.gz.age", "data.tar.zst", "data.tar.zst.age", "snapshot.json":
+	case "snapshot.json",
+		"data.tar.gz", "data.tar.gz.age",
+		"data.tar.zst", "data.tar.zst.age",
+		"data.tar", "data.tar.age":
 		return true
+
 	default:
 		return false
 	}

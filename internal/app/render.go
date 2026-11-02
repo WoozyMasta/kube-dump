@@ -605,9 +605,12 @@ func archiveAlgorithm(path string) (compress.Algorithm, bool, error) {
 	case ".zst":
 		return compress.Zstandard, encrypted, nil
 
+	case ".tar":
+		return compress.None, encrypted, nil
+
 	default:
 		return "", false, fmt.Errorf(
-			"unsupported backup archive %q: use .tar.gz, .tar.gz.age, .tar.zst, or .tar.zst.age",
+			"unsupported backup archive %q: use .tar, .tar.age, .tar.gz, .tar.gz.age, .tar.zst, or .tar.zst.age",
 			path,
 		)
 	}

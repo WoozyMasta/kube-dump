@@ -22,6 +22,8 @@ const (
 	Zstandard Algorithm = "zstd"
 	// Gzip is the secondary widely supported artifact format.
 	Gzip Algorithm = "gzip"
+	// None leaves the stream uncompressed.
+	None Algorithm = "none"
 )
 
 // Algorithm identifies an on-disk compression format.
@@ -77,6 +79,11 @@ func (c Config) Validate() error {
 		// which is a valid explicit choice even though the default level remains codec-selected.
 		if c.Level != 0 && (c.Level < gzip.HuffmanOnly || c.Level > gzip.BestCompression) {
 			return fmt.Errorf("gzip compression level %d is outside -2..9", c.Level)
+		}
+
+	case None:
+		if c.Level != 0 {
+			return errors.New("compression level cannot be set when compression is disabled")
 		}
 
 	default:
@@ -145,6 +152,9 @@ func NewWriter(destination io.Writer, config Config) (io.WriteCloser, error) {
 		}
 		return gzip.NewWriterLevel(destination, config.Level)
 
+	case None:
+		return writeCloser{Writer: destination}, nil
+
 	default:
 		return nil, fmt.Errorf("unsupported compression algorithm %q", algorithm)
 	}
@@ -169,7 +179,18 @@ func NewReader(source io.Reader, algorithm Algorithm) (io.ReadCloser, error) {
 	case Gzip:
 		return gzip.NewReader(source)
 
+	case None:
+		return io.NopCloser(source), nil
+
 	default:
 		return nil, fmt.Errorf("unsupported compression algorithm %q", algorithm)
 	}
 }
+
+// writeCloser adapts an uncompressed writer to the codec writer contract.
+type writeCloser struct {
+	io.Writer
+}
+
+// Close completes an uncompressed stream without modifying its destination.
+func (writeCloser) Close() error { return nil }
