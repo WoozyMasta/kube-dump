@@ -18,4 +18,4 @@ RUN apk add --no-cache \
 
 COPY --from=oras /bin/oras /bin/oras
 COPY --from=regctl /regctl /bin/regctl
-COPY --from=kube-dump /kube-dump /bin/kube-dump
+COPY --from=kube-dump /bin/kube-dump /bin/kube-dump

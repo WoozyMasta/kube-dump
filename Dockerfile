@@ -23,9 +23,10 @@ FROM scratch
 
 COPY --from=build /runtime-tmp /tmp
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-COPY --from=build /src/build/kube-dump /kube-dump
+COPY --from=build /src/build/kube-dump /bin/kube-dump
 
+ENV PATH=/bin
 USER 65532:65532
 
-ENTRYPOINT ["/kube-dump"]
+ENTRYPOINT ["/bin/kube-dump"]
 CMD ["version"]

@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning][].
 ### Removed
 -->
 
+## Unreleased
+
+### Fixed
+
+* PVC restore helper startup with the standard container image.
+
 ## [2.0.0][] - 2026-09-11
 
 ### Added

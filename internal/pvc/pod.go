@@ -21,8 +21,8 @@ import (
 )
 
 const (
-	defaultVolumeAgentBinary                 = "kube-dump"
-	fallbackVolumeAgentBinary                = "/kube-dump"
+	defaultVolumeAgentBinary                 = "/bin/kube-dump"
+	fallbackVolumeAgentBinary                = "kube-dump"
 	defaultHelperReadyWait                   = 10 * time.Minute
 	defaultHelperActiveDeadlineSeconds int64 = 24 * 60 * 60
 )
@@ -461,8 +461,8 @@ func helperPodHasStartError(object *unstructured.Unstructured) bool {
 	return false
 }
 
-// helperAgentBinaries returns the configured executable or the two supported defaults:
-// a PATH lookup followed by the binary location in the base image.
+// helperAgentBinaries returns the configured executable or the supported defaults:
+// the standard absolute path followed by a PATH lookup for custom images.
 func helperAgentBinaries(configured string) []string {
 	if configured != "" {
 		return []string{configured}

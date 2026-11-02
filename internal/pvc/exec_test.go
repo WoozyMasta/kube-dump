@@ -44,12 +44,12 @@ func TestPodStrategyExecUsesHelperMountPath(t *testing.T) {
 	pod := HelperPod{
 		Namespace:   "default",
 		Name:        "helper",
-		AgentBinary: "/kube-dump",
+		AgentBinary: "/bin/kube-dump",
 		Container:   "helper",
 		MountPath:   "/mounted volume",
 	}
 
-	want := []string{"/kube-dump", "volume", "export", "/mounted volume"}
+	want := []string{"/bin/kube-dump", "volume", "export", "/mounted volume"}
 	if err := strategy.exec(context.Background(), pod, want, nil, io.Discard); err != nil {
 		t.Fatalf("PodStrategy.exec() error = %v", err)
 	}

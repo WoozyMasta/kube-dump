@@ -322,7 +322,7 @@ func TestHelperPodWaitReadyExplainsEarlyCompletion(t *testing.T) {
 	}
 }
 
-func TestPodStrategyRetriesDefaultAgentWithRootFallback(t *testing.T) {
+func TestPodStrategyRetriesDefaultAgentWithPATHFallback(t *testing.T) {
 	t.Parallel()
 
 	client := fake.NewSimpleDynamicClientWithCustomListKinds(
@@ -369,7 +369,7 @@ func TestPodStrategyRetriesDefaultAgentWithRootFallback(t *testing.T) {
 				"name": "helper",
 				"state": map[string]any{"terminated": map[string]any{
 					"reason":  "ContainerCannotRun",
-					"message": `exec: "kube-dump": executable file not found in $PATH`,
+					"message": `exec: "/bin/kube-dump": executable file not found`,
 				}},
 			}}
 		}
@@ -405,7 +405,7 @@ func TestPodStrategyRetriesDefaultAgentWithRootFallback(t *testing.T) {
 	if created != 2 {
 		t.Fatalf("helper Pods created = %d, want one retry", created)
 	}
-	if pod.AgentBinary != "/kube-dump" {
-		t.Fatalf("selected agent binary = %q, want /kube-dump", pod.AgentBinary)
+	if pod.AgentBinary != "kube-dump" {
+		t.Fatalf("selected agent binary = %q, want kube-dump", pod.AgentBinary)
 	}
 }
