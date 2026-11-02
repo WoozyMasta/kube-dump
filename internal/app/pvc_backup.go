@@ -72,7 +72,7 @@ func backupPVCData(
 	if destination == "" && remoteOptions == nil {
 		return errors.New("PVC data destination is required")
 	}
-	helperResources, err := options.PvcHelperOptions.ResourceRequirements()
+	helperResources, err := options.ResourceRequirements()
 	if err != nil {
 		return err
 	}

@@ -68,12 +68,12 @@ type PodStrategy struct {
 type countingWriter struct {
 	// writer receives the forwarded stream bytes.
 	writer io.Writer
-	// bytes is the number of bytes accepted by writer.
-	bytes int64
 	// err retains a write failure in case the exec transport does not return it.
 	err error
 	// onError notifies a protocol peer when forwarding the stream fails.
 	onError func(error)
+	// bytes is the number of bytes accepted by writer.
+	bytes int64
 }
 
 // limitedBuffer bounds diagnostic output from a helper command.

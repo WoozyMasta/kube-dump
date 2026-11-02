@@ -53,6 +53,8 @@ type HelperPodOptions struct {
 	NodeName string
 	// RunID identifies the command run that owns the temporary Pod.
 	RunID string
+	// Resources optionally sets CPU and memory requests and limits for the helper container.
+	Resources corev1.ResourceRequirements
 	// Arguments replaces the default volume hold command.
 	Arguments []string
 	// EnvironmentFromSecrets exposes temporary Secret keys to the helper.
@@ -65,8 +67,6 @@ type HelperPodOptions struct {
 	ReadyTimeout time.Duration
 	// ActiveDeadlineSeconds bounds the lifetime of an abandoned helper Pod.
 	ActiveDeadlineSeconds int64
-	// Resources optionally sets CPU and memory requests and limits for the helper container.
-	Resources corev1.ResourceRequirements
 	// ReadOnly requests a read-only PVC mount for backup operations.
 	ReadOnly bool
 	// AutomountServiceAccountToken enables workload identity for the helper.

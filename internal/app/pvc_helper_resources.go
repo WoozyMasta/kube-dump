@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // SPDX-FileCopyrightText: Copyright 2021-2026 WoozyMasta
-// Source: https://github.com/woozymasta/kube-dump
+// Source: https://github.com/WoozyMasta/kube-dump
 
 package app
 

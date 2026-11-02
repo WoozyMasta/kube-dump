@@ -126,8 +126,8 @@ func waitForVolumeExportAcknowledgement(ctx context.Context, input io.Reader, ti
 	}
 
 	type acknowledgementResult struct {
-		data []byte
 		err  error
+		data []byte
 	}
 	result := make(chan acknowledgementResult, 1)
 	go func() {

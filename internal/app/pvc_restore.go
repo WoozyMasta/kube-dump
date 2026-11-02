@@ -33,8 +33,8 @@ import (
 // restoreCountReader counts the uncompressed payload while it is streamed into a PVC.
 type restoreCountReader struct {
 	reader io.Reader // reader is the decoded archive payload stream.
-	bytes  int64     // bytes is the number of decoded payload bytes returned to the helper strategy.
 	err    error     // err retains read failures that client-go's stdin copier may only log.
+	bytes  int64     // bytes is the number of decoded payload bytes returned to the helper strategy.
 }
 
 // restoreContextReader makes local archive spooling observe cancellation between reads.
@@ -85,7 +85,7 @@ func (c *PvcRestoreS3Command) Execute(_ []string) (err error) {
 	if err := c.Existing.Validate(); err != nil {
 		return err
 	}
-	helperResources, err := c.PvcHelperOptions.ResourceRequirements()
+	helperResources, err := c.ResourceRequirements()
 	if err != nil {
 		return err
 	}
@@ -188,7 +188,7 @@ func restorePVCFromDirectory(
 	clientOptions kube.ClientOptions,
 	manager *progress.Manager,
 ) error {
-	helperResources, err := restoreOptions.PvcHelperOptions.ResourceRequirements()
+	helperResources, err := restoreOptions.ResourceRequirements()
 	if err != nil {
 		return err
 	}
