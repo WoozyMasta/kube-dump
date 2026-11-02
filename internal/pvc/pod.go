@@ -65,6 +65,8 @@ type HelperPodOptions struct {
 	ReadyTimeout time.Duration
 	// ActiveDeadlineSeconds bounds the lifetime of an abandoned helper Pod.
 	ActiveDeadlineSeconds int64
+	// Resources optionally sets CPU and memory requests and limits for the helper container.
+	Resources corev1.ResourceRequirements
 	// ReadOnly requests a read-only PVC mount for backup operations.
 	ReadOnly bool
 	// AutomountServiceAccountToken enables workload identity for the helper.
@@ -78,6 +80,25 @@ type HelperSecretVolume struct {
 	SecretName string
 	// MountPath is the absolute path inside the helper container.
 	MountPath string
+}
+
+// ValidateHelperResources rejects negative quantities and requests above their limits.
+func ValidateHelperResources(resources corev1.ResourceRequirements) error {
+	for name, request := range resources.Requests {
+		if request.Sign() < 0 {
+			return fmt.Errorf("helper Pod request for %s cannot be negative", name)
+		}
+		if limit, found := resources.Limits[name]; found && request.Cmp(limit) > 0 {
+			return fmt.Errorf("helper Pod request for %s exceeds its limit", name)
+		}
+	}
+	for name, limit := range resources.Limits {
+		if limit.Sign() < 0 {
+			return fmt.Errorf("helper Pod limit for %s cannot be negative", name)
+		}
+	}
+
+	return nil
 }
 
 // HelperPod identifies a created helper Pod and its mounted volume.
@@ -151,6 +172,9 @@ func (o *HelperPodOptions) normalize(ctx context.Context, pvc Ref, podNamePrefix
 	}
 	if o.Image == "" {
 		return errors.New("helper Pod image is required")
+	}
+	if err := ValidateHelperResources(o.Resources); err != nil {
+		return err
 	}
 
 	// Keep the default explicit in the generated Pod
@@ -700,6 +724,16 @@ func helperPodObject(pvc Ref, podName string, options HelperPodOptions) *unstruc
 			"mountPath": options.MountPath,
 		}},
 	}
+	if len(options.Resources.Requests) > 0 || len(options.Resources.Limits) > 0 {
+		resources := make(map[string]any, 2)
+		if len(options.Resources.Requests) > 0 {
+			resources["requests"] = helperResourceListObject(options.Resources.Requests)
+		}
+		if len(options.Resources.Limits) > 0 {
+			resources["limits"] = helperResourceListObject(options.Resources.Limits)
+		}
+		container["resources"] = resources
+	}
 	if len(options.EnvironmentFromSecrets) > 0 {
 		envFrom := make([]any, 0, len(options.EnvironmentFromSecrets))
 		for _, secret := range options.EnvironmentFromSecrets {
@@ -763,6 +797,16 @@ func helperPodObject(pvc Ref, podName string, options HelperPodOptions) *unstruc
 			"volumes":    volumes,
 		},
 	}}
+}
+
+// helperResourceListObject converts Kubernetes quantities to the string form expected by the API.
+func helperResourceListObject(resources corev1.ResourceList) map[string]any {
+	result := make(map[string]any, len(resources))
+	for name, quantity := range resources {
+		result[string(name)] = quantity.String()
+	}
+
+	return result
 }
 
 // temporaryResourceLabels identifies resources created for one source PVC and, when supplied, one command run.

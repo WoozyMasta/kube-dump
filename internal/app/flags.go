@@ -425,9 +425,13 @@ type PvcRestoreCommand struct {
 
 // PvcHelperOptions contains helper Pod settings shared by PVC save and restore.
 type PvcHelperOptions struct {
-	Image            string            `long:"image"              description:"Container image used by the PVC helper Pod"`
-	ImagePullPolicy  corev1.PullPolicy `long:"image-pull-policy"  description:"Pull policy for temporary PVC helper Pods" default:"IfNotPresent" choices:"Always;IfNotPresent;Never"`
-	HelperBinaryPath string            `long:"helper-binary-path" description:"Path to the volume agent inside the helper container; default: /bin/kube-dump, then kube-dump from PATH"`
+	Image            string            `long:"image"                 description:"Container image used by the PVC helper Pod"`
+	ImagePullPolicy  corev1.PullPolicy `long:"image-pull-policy"     description:"Pull policy for temporary PVC helper Pods" default:"IfNotPresent" choices:"Always;IfNotPresent;Never"`
+	HelperBinaryPath string            `long:"helper-binary-path"    description:"Path to the volume agent inside the helper container; default: /bin/kube-dump, then kube-dump from PATH"`
+	CPURequest       string            `long:"helper-cpu-request"    description:"CPU request for temporary PVC helper Pods"`
+	MemoryRequest    string            `long:"helper-memory-request" description:"Memory request for temporary PVC helper Pods"`
+	CPULimit         string            `long:"helper-cpu-limit"      description:"CPU limit for temporary PVC helper Pods"`
+	MemoryLimit      string            `long:"helper-memory-limit"   description:"Memory limit for temporary PVC helper Pods"`
 }
 
 // PvcRestoreOptions selects the saved artifact and target PVC.

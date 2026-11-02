@@ -26,6 +26,24 @@ kube-dump pvc save dir ./backup --namespace production
 kube-dump pvc save dir ./backup --pvc postgres-data --pvc 'redis-*'
 ```
 
+### Ресурсы helper Pod’ов
+
+По умолчанию запросы и лимиты CPU и памяти не задаются:
+их могут добавить `LimitRange` или политики кластера.
+Для `pvc save` и `pvc restore` их можно задать явно:
+
+```shell
+kube-dump pvc save dir ./backup \
+  --helper-cpu-request 250m \
+  --helper-memory-request 256Mi \
+  --helper-cpu-limit 1 \
+  --helper-memory-limit 512Mi
+```
+
+Те же флаги доступны при сохранении и восстановлении через S3.
+Неуказанные значения в Pod не добавляются;
+запрос не может превышать соответствующий лимит.
+
 ## Как хранятся копии
 
 Для каждого PVC создаётся отдельная копия с отметкой времени.

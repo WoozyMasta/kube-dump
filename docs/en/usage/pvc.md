@@ -24,6 +24,24 @@ Select PVCs by name or glob:
 kube-dump pvc save dir ./backup --pvc postgres-data --pvc 'redis-*'
 ```
 
+### Helper Pod resources
+
+CPU and memory requests and limits are omitted by default.
+A namespace `LimitRange` or cluster admission policy may set defaults.
+Set them explicitly for `pvc save` and `pvc restore`:
+
+```shell
+kube-dump pvc save dir ./backup \
+  --helper-cpu-request 250m \
+  --helper-memory-request 256Mi \
+  --helper-cpu-limit 1 \
+  --helper-memory-limit 512Mi
+```
+
+The same flags apply to S3 saves and restores.
+Unset values are omitted from the Pod spec;
+a request cannot exceed its corresponding limit.
+
 ## Backup layout and retention
 
 Each PVC copy is stored in a timestamped directory:

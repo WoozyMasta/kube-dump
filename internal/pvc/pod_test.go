@@ -9,6 +9,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -238,6 +239,85 @@ func TestHelperPodRestoreAddsMetadataCapabilities(t *testing.T) {
 	want := []string{"DAC_READ_SEARCH", "DAC_OVERRIDE", "CHOWN", "FOWNER"}
 	if !reflect.DeepEqual(capabilities, want) {
 		t.Fatalf("restore capabilities = %#v, want %#v", capabilities, want)
+	}
+}
+
+func TestHelperPodObjectOmitsResourcesWhenUnset(t *testing.T) {
+	t.Parallel()
+
+	object := helperPodObject(Ref{Namespace: "default", Name: "data"}, "kube-dump-helper-", HelperPodOptions{
+		Image: "registry.example/helper:v1",
+	})
+	containers, found, err := unstructured.NestedSlice(object.Object, "spec", "containers")
+	if err != nil || !found || len(containers) != 1 {
+		t.Fatalf("helper containers = %#v, found=%t, error=%v", containers, found, err)
+	}
+	container := containers[0].(map[string]any)
+	if _, found, err := unstructured.NestedMap(container, "resources"); err != nil || found {
+		t.Fatalf("helper resources found=%t, error=%v; want field omitted", found, err)
+	}
+}
+
+func TestHelperPodObjectSetsResourceRequestsAndLimits(t *testing.T) {
+	t.Parallel()
+
+	object := helperPodObject(Ref{Namespace: "default", Name: "data"}, "kube-dump-helper-", HelperPodOptions{
+		Image: "registry.example/helper:v1",
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse("250m"),
+				corev1.ResourceMemory: resource.MustParse("128Mi"),
+			},
+			Limits: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse("1"),
+				corev1.ResourceMemory: resource.MustParse("512Mi"),
+			},
+		},
+	})
+	containers, found, err := unstructured.NestedSlice(object.Object, "spec", "containers")
+	if err != nil || !found || len(containers) != 1 {
+		t.Fatalf("helper containers = %#v, found=%t, error=%v", containers, found, err)
+	}
+	container := containers[0].(map[string]any)
+	requests, found, err := unstructured.NestedStringMap(container, "resources", "requests")
+	if err != nil || !found {
+		t.Fatalf("helper resource requests = %#v, found=%t, error=%v", requests, found, err)
+	}
+	if requests[string(corev1.ResourceCPU)] != "250m" || requests[string(corev1.ResourceMemory)] != "128Mi" {
+		t.Fatalf("helper resource requests = %#v", requests)
+	}
+	limits, found, err := unstructured.NestedStringMap(container, "resources", "limits")
+	if err != nil || !found {
+		t.Fatalf("helper resource limits = %#v, found=%t, error=%v", limits, found, err)
+	}
+	if limits[string(corev1.ResourceCPU)] != "1" || limits[string(corev1.ResourceMemory)] != "512Mi" {
+		t.Fatalf("helper resource limits = %#v", limits)
+	}
+}
+
+func TestHelperPodStartRejectsRequestAboveLimitBeforeCreate(t *testing.T) {
+	t.Parallel()
+
+	client := fake.NewSimpleDynamicClient(runtime.NewScheme())
+	created := false
+	client.PrependReactor("create", "pods", func(ktesting.Action) (bool, runtime.Object, error) {
+		created = true
+		return false, nil, nil
+	})
+	options := HelperPodOptions{
+		Dynamic: client,
+		Image:   "registry.example/helper:v1",
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("2")},
+			Limits:   corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("1")},
+		},
+	}
+
+	if _, err := options.Start(context.Background(), Ref{Namespace: "default", Name: "data"}, "kube-dump-helper-"); err == nil {
+		t.Fatal("Start() accepted a resource request above its limit")
+	}
+	if created {
+		t.Fatal("Start() created a Pod with invalid resource requirements")
 	}
 }
 

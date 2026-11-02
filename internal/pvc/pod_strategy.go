@@ -95,6 +95,9 @@ func NewPodStrategy(options PodStrategyOptions) (*PodStrategy, error) {
 	if options.Image == "" {
 		return nil, errors.New("PVC Pod strategy container image is required")
 	}
+	if err := ValidateHelperResources(options.Helper.Resources); err != nil {
+		return nil, fmt.Errorf("validate PVC helper resources: %w", err)
+	}
 
 	if options.Compression == "" {
 		options.Compression = compress.DefaultAlgorithm

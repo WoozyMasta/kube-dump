@@ -46,6 +46,8 @@ type S3RestorerOptions struct {
 	Object string
 	// Compression identifies the archive codec.
 	Compression compress.Algorithm
+	// Resources optionally sets CPU and memory requests and limits for the restorer Pod.
+	Resources corev1.ResourceRequirements
 	// Existing controls how the target PVC's existing data is handled.
 	Existing ExistingPolicy
 	// ExpectedSHA256 is the uncompressed tar payload digest from metadata.
@@ -91,6 +93,9 @@ func NewS3Restorer(options S3RestorerOptions) (*S3Restorer, error) {
 	}
 	if options.Object == "" {
 		return nil, errors.New("S3 restorer object is required")
+	}
+	if err := ValidateHelperResources(options.Resources); err != nil {
+		return nil, fmt.Errorf("validate S3 restorer resources: %w", err)
 	}
 	if options.AccessKey != "" || options.SecretKey != "" {
 		if options.AccessKey == "" || options.SecretKey == "" {
@@ -291,6 +296,7 @@ func (r *S3Restorer) helperOptions(credentialSecret, identitySecret, passphraseS
 		Dynamic:                      r.options.Dynamic,
 		Image:                        r.options.Image,
 		ImagePullPolicy:              r.options.ImagePullPolicy,
+		Resources:                    r.options.Resources,
 		AgentBinary:                  r.options.AgentBinary,
 		MountPath:                    "/data",
 		ExpectedTargetIdentity:       r.options.ExpectedTargetIdentity,

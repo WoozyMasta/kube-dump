@@ -23,6 +23,23 @@ kube-dump pvc save dir ./backup --namespace production
 kube-dump pvc save dir ./backup --pvc postgres-data --pvc 'redis-*'
 ```
 
+### Helper Pod 资源
+
+默认不设置 CPU 和内存的 requests 与 limits；
+namespace 的 `LimitRange` 或集群准入策略可以提供默认值。
+可为 `pvc save` 和 `pvc restore` 显式设置：
+
+```shell
+kube-dump pvc save dir ./backup \
+  --helper-cpu-request 250m \
+  --helper-memory-request 256Mi \
+  --helper-cpu-limit 1 \
+  --helper-memory-limit 512Mi
+```
+
+通过 S3 保存和恢复时也使用这些选项。
+未设置的值不会写入 Pod spec；request 不能大于对应的 limit。
+
 ## 备份布局和保留策略
 
 每个 PVC 副本保存在带时间戳的目录中：

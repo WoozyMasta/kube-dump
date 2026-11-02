@@ -14,6 +14,8 @@ import (
 
 	"github.com/woozymasta/kube-dump/v2/internal/compress"
 	"github.com/woozymasta/kube-dump/v2/internal/state"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic/fake"
@@ -32,6 +34,10 @@ func TestS3MoverHelperOptionsBuildDirectUploadCommand(t *testing.T) {
 		Region:      "us-east-1",
 		Compression: compress.Gzip,
 		Recipients:  []string{"age1example"},
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("250m")},
+			Limits:   corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("1")},
+		},
 	}}
 	claim := Ref{Namespace: "team-a", Name: "data"}
 	options := mover.helperOptions(claim, "credentials", "20260902T120000Z")
@@ -77,6 +83,14 @@ func TestS3MoverHelperOptionsBuildDirectUploadCommand(t *testing.T) {
 	}
 	if container["terminationMessagePolicy"] != "File" {
 		t.Fatalf("termination message policy = %#v, want File", container["terminationMessagePolicy"])
+	}
+	requests, found, err := unstructured.NestedStringMap(container, "resources", "requests")
+	if err != nil || !found || requests[string(corev1.ResourceCPU)] != "250m" {
+		t.Fatalf("mover resource requests = %#v, found=%t error=%v", requests, found, err)
+	}
+	limits, found, err := unstructured.NestedStringMap(container, "resources", "limits")
+	if err != nil || !found || limits[string(corev1.ResourceCPU)] != "1" {
+		t.Fatalf("mover resource limits = %#v, found=%t error=%v", limits, found, err)
 	}
 
 	envFrom, found, err := unstructured.NestedSlice(container, "envFrom")

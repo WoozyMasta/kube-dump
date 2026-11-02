@@ -51,6 +51,8 @@ type S3MoverOptions struct {
 	Region string
 	// Compression identifies the archive codec.
 	Compression compress.Algorithm
+	// Resources optionally sets CPU and memory requests and limits for the mover Pod.
+	Resources corev1.ResourceRequirements
 	// AccessKey is an optional static S3 access key.
 	AccessKey string
 	// SecretKey is an optional static S3 secret key.
@@ -91,6 +93,9 @@ func NewS3Mover(options S3MoverOptions) (*S3Mover, error) {
 	}
 	if options.URI == "" {
 		return nil, errors.New("S3 mover URI is required")
+	}
+	if err := ValidateHelperResources(options.Resources); err != nil {
+		return nil, fmt.Errorf("validate S3 mover resources: %w", err)
 	}
 	if options.AccessKey != "" || options.SecretKey != "" {
 		if options.AccessKey == "" || options.SecretKey == "" {
@@ -327,6 +332,7 @@ func (m *S3Mover) helperOptions(claim Ref, secretName, timestamp string) HelperP
 		Dynamic:                      m.options.Dynamic,
 		Image:                        m.options.Image,
 		ImagePullPolicy:              m.options.ImagePullPolicy,
+		Resources:                    m.options.Resources,
 		AgentBinary:                  m.options.AgentBinary,
 		MountPath:                    "/data",
 		ReadOnly:                     true,

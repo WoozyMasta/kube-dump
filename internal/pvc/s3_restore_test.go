@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/woozymasta/kube-dump/v2/internal/compress"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -27,6 +29,10 @@ func TestS3RestorerHelperOptionsBuildDirectDownloadCommand(t *testing.T) {
 		ExpectedSize:   1234,
 		ExpectedSHA256: "digest",
 		Encrypted:      true,
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("128Mi")},
+			Limits:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("512Mi")},
+		},
 	}}
 	options := restorer.helperOptions("credentials", "identity", "passphrase")
 	object := helperPodObject(Ref{Namespace: "prod", Name: "data"}, "kube-dump-restorer-", options)
@@ -66,6 +72,14 @@ func TestS3RestorerHelperOptionsBuildDirectDownloadCommand(t *testing.T) {
 		if command[index] != want[index] {
 			t.Fatalf("restorer command = %#v, want %#v", command, want)
 		}
+	}
+	requests, found, err := unstructured.NestedStringMap(container, "resources", "requests")
+	if err != nil || !found || requests[string(corev1.ResourceMemory)] != "128Mi" {
+		t.Fatalf("restorer resource requests = %#v, found=%t error=%v", requests, found, err)
+	}
+	limits, found, err := unstructured.NestedStringMap(container, "resources", "limits")
+	if err != nil || !found || limits[string(corev1.ResourceMemory)] != "512Mi" {
+		t.Fatalf("restorer resource limits = %#v, found=%t error=%v", limits, found, err)
 	}
 
 	envFrom, found, err := unstructured.NestedSlice(container, "envFrom")

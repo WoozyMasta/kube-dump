@@ -824,6 +824,10 @@ kube-dump pvc restore dir ./pvc-data --pvc production/postgres-data --target-pvc
 |`--image`|Container image used by the PVC helper Pod||`$KUBE_DUMP_IMAGE`|no|
 |`--image-pull-policy`|Pull policy for temporary PVC helper Pods; choices: `Always, IfNotPresent, Never`|`IfNotPresent`|`$KUBE_DUMP_IMAGE_PULL_POLICY`|no|
 |`--helper-binary-path`|Path to the volume agent inside the helper container; default: /bin/kube-dump, then kube-dump from PATH||`$KUBE_DUMP_HELPER_BINARY_PATH`|no|
+|`--helper-cpu-request`|CPU request for temporary PVC helper Pods||`$KUBE_DUMP_HELPER_CPU_REQUEST`|no|
+|`--helper-memory-request`|Memory request for temporary PVC helper Pods||`$KUBE_DUMP_HELPER_MEMORY_REQUEST`|no|
+|`--helper-cpu-limit`|CPU limit for temporary PVC helper Pods||`$KUBE_DUMP_HELPER_CPU_LIMIT`|no|
+|`--helper-memory-limit`|Memory limit for temporary PVC helper Pods||`$KUBE_DUMP_HELPER_MEMORY_LIMIT`|no|
 
 #### Encryption
 
@@ -882,6 +886,10 @@ kube-dump pvc restore s3 --s3-uri s3://bucket/pvc --pvc production/postgres-data
 |`--image`|Container image used by the PVC helper Pod||`$KUBE_DUMP_IMAGE`|no|
 |`--image-pull-policy`|Pull policy for temporary PVC helper Pods; choices: `Always, IfNotPresent, Never`|`IfNotPresent`|`$KUBE_DUMP_IMAGE_PULL_POLICY`|no|
 |`--helper-binary-path`|Path to the volume agent inside the helper container; default: /bin/kube-dump, then kube-dump from PATH||`$KUBE_DUMP_HELPER_BINARY_PATH`|no|
+|`--helper-cpu-request`|CPU request for temporary PVC helper Pods||`$KUBE_DUMP_HELPER_CPU_REQUEST`|no|
+|`--helper-memory-request`|Memory request for temporary PVC helper Pods||`$KUBE_DUMP_HELPER_MEMORY_REQUEST`|no|
+|`--helper-cpu-limit`|CPU limit for temporary PVC helper Pods||`$KUBE_DUMP_HELPER_CPU_LIMIT`|no|
+|`--helper-memory-limit`|Memory limit for temporary PVC helper Pods||`$KUBE_DUMP_HELPER_MEMORY_LIMIT`|no|
 
 #### Encryption
 
@@ -946,6 +954,10 @@ Capture PVC filesystems and store archives locally
 |`--image`|Container image used by the PVC helper Pod||`$KUBE_DUMP_IMAGE`|no|
 |`--image-pull-policy`|Pull policy for temporary PVC helper Pods; choices: `Always, IfNotPresent, Never`|`IfNotPresent`|`$KUBE_DUMP_IMAGE_PULL_POLICY`|no|
 |`--helper-binary-path`|Path to the volume agent inside the helper container; default: /bin/kube-dump, then kube-dump from PATH||`$KUBE_DUMP_HELPER_BINARY_PATH`|no|
+|`--helper-cpu-request`|CPU request for temporary PVC helper Pods||`$KUBE_DUMP_HELPER_CPU_REQUEST`|no|
+|`--helper-memory-request`|Memory request for temporary PVC helper Pods||`$KUBE_DUMP_HELPER_MEMORY_REQUEST`|no|
+|`--helper-cpu-limit`|CPU limit for temporary PVC helper Pods||`$KUBE_DUMP_HELPER_CPU_LIMIT`|no|
+|`--helper-memory-limit`|Memory limit for temporary PVC helper Pods||`$KUBE_DUMP_HELPER_MEMORY_LIMIT`|no|
 |`--strategy`|PVC data acquisition strategy; choices: `pod, snapshot-copy`|`snapshot-copy`|`$KUBE_DUMP_STRATEGY`|no|
 |`--snapshot-class`|VolumeSnapshotClass for snapshot-based strategies||`$KUBE_DUMP_SNAPSHOT_CLASS`|no|
 |`--compression`|Compression for portable PVC data; choices: `zstd, gzip, none`|`zstd`|`$KUBE_DUMP_COMPRESSION`|no|
@@ -1010,6 +1022,10 @@ Capture PVC filesystems and store archives in S3
 |`--image`|Container image used by the PVC helper Pod||`$KUBE_DUMP_IMAGE`|no|
 |`--image-pull-policy`|Pull policy for temporary PVC helper Pods; choices: `Always, IfNotPresent, Never`|`IfNotPresent`|`$KUBE_DUMP_IMAGE_PULL_POLICY`|no|
 |`--helper-binary-path`|Path to the volume agent inside the helper container; default: /bin/kube-dump, then kube-dump from PATH||`$KUBE_DUMP_HELPER_BINARY_PATH`|no|
+|`--helper-cpu-request`|CPU request for temporary PVC helper Pods||`$KUBE_DUMP_HELPER_CPU_REQUEST`|no|
+|`--helper-memory-request`|Memory request for temporary PVC helper Pods||`$KUBE_DUMP_HELPER_MEMORY_REQUEST`|no|
+|`--helper-cpu-limit`|CPU limit for temporary PVC helper Pods||`$KUBE_DUMP_HELPER_CPU_LIMIT`|no|
+|`--helper-memory-limit`|Memory limit for temporary PVC helper Pods||`$KUBE_DUMP_HELPER_MEMORY_LIMIT`|no|
 |`--strategy`|PVC data acquisition strategy; choices: `pod, snapshot-copy`|`snapshot-copy`|`$KUBE_DUMP_STRATEGY`|no|
 |`--snapshot-class`|VolumeSnapshotClass for snapshot-based strategies||`$KUBE_DUMP_SNAPSHOT_CLASS`|no|
 |`--compression`|Compression for portable PVC data; choices: `zstd, gzip, none`|`zstd`|`$KUBE_DUMP_COMPRESSION`|no|

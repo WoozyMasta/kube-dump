@@ -20,6 +20,7 @@ import (
 	"github.com/woozymasta/kube-dump/v2/internal/progress"
 	"github.com/woozymasta/kube-dump/v2/internal/pvc"
 	"github.com/woozymasta/kube-dump/v2/internal/retry"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
@@ -71,6 +72,10 @@ func backupPVCData(
 	if destination == "" && remoteOptions == nil {
 		return errors.New("PVC data destination is required")
 	}
+	helperResources, err := options.PvcHelperOptions.ResourceRequirements()
+	if err != nil {
+		return err
+	}
 
 	recipientValues, err := loadRecipientValues(
 		options.Recipients,
@@ -106,7 +111,7 @@ func backupPVCData(
 	if remoteOptions == nil {
 		// Local destinations use a client-mediated strategy
 		// that writes the decoded stream into VolumeStore after the helper finishes exporting it.
-		strategy, err = newPVCStrategies(client, options, compressionSide, recipients, runID)
+		strategy, err = newPVCStrategies(client, options, compressionSide, helperResources, recipients, runID)
 		if err != nil {
 			return err
 		}
@@ -118,6 +123,7 @@ func backupPVCData(
 		remoteOptions.ImagePullPolicy = options.ImagePullPolicy
 		remoteOptions.AgentBinary = options.HelperBinaryPath
 		remoteOptions.Compression = options.Compression
+		remoteOptions.Resources = helperResources
 		remoteOptions.Recipients = recipientValues
 		remoteOptions.RunID = runID
 		remoteOptions.RetryAttempts = retry.Attempts(ctx)
@@ -423,6 +429,7 @@ func newPVCStrategies(
 	client *kube.Client,
 	options PvcSaveOptions,
 	compressionSide pvc.CompressionSide,
+	helperResources corev1.ResourceRequirements,
 	recipients []age.Recipient,
 	runID string,
 ) (pvc.BackupStrategy, error) {
@@ -440,6 +447,7 @@ func newPVCStrategies(
 		Helper: pvc.HelperPodOptions{
 			AgentBinary:     options.HelperBinaryPath,
 			ImagePullPolicy: options.ImagePullPolicy,
+			Resources:       helperResources,
 			RunID:           runID,
 		},
 	})

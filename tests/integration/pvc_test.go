@@ -48,6 +48,10 @@ func TestPVCDataSaveAgainstKind(t *testing.T) {
 		"--namespace", fixture.namespace,
 		"--pvc", fixture.pvc,
 		"--compression", "gzip",
+		"--helper-cpu-request", "100m",
+		"--helper-memory-request", "64Mi",
+		"--helper-cpu-limit", "500m",
+		"--helper-memory-limit", "256Mi",
 	)
 
 	inspectResult := environment.mustRunCLI(t, "inspect PVC data", "pvc", "inspect", "dir", destination)
@@ -225,6 +229,10 @@ func TestPVCDataRestoreAgainstKind(t *testing.T) {
 		"--namespace", source.namespace,
 		"--pvc", source.pvc,
 		"--compression", "gzip",
+		"--helper-cpu-request", "100m",
+		"--helper-memory-request", "64Mi",
+		"--helper-cpu-limit", "500m",
+		"--helper-memory-limit", "256Mi",
 	)
 
 	environment.mustRunKubeCLI(t, "restore PVC archive",
@@ -232,6 +240,10 @@ func TestPVCDataRestoreAgainstKind(t *testing.T) {
 		"--pvc", source.namespace+"/"+source.pvc,
 		"--target-pvc", target.namespace+"/"+target.pvc,
 		"--image", target.helperImage,
+		"--helper-cpu-request", "100m",
+		"--helper-memory-request", "64Mi",
+		"--helper-cpu-limit", "500m",
+		"--helper-memory-limit", "256Mi",
 	)
 
 	result := environment.runtime.exec(
@@ -341,6 +353,10 @@ func TestPVCDataS3SaveAndDownloadAgainstKind(t *testing.T) {
 		"--pvc", fixture.pvc,
 		"--compression", "none",
 		"--s3-pod-endpoint", s3.podEndpoint,
+		"--helper-cpu-request", "100m",
+		"--helper-memory-request", "64Mi",
+		"--helper-cpu-limit", "500m",
+		"--helper-memory-limit", "256Mi",
 	)
 	environment.mustRunKubeCLI(t, "save PVC data to S3", saveArgs...)
 
@@ -350,6 +366,10 @@ func TestPVCDataS3SaveAndDownloadAgainstKind(t *testing.T) {
 		"--target-pvc", target.namespace+"/"+target.pvc,
 		"--image", target.helperImage,
 		"--s3-pod-endpoint", s3.podEndpoint,
+		"--helper-cpu-request", "100m",
+		"--helper-memory-request", "64Mi",
+		"--helper-cpu-limit", "500m",
+		"--helper-memory-limit", "256Mi",
 	)
 	environment.mustRunKubeCLI(t, "restore PVC data from S3", restoreArgs...)
 

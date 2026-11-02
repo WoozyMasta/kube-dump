@@ -27,6 +27,7 @@ import (
 	"github.com/woozymasta/kube-dump/v2/internal/pvc"
 	"github.com/woozymasta/kube-dump/v2/internal/state"
 	"github.com/woozymasta/kube-dump/v2/internal/version"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // restoreCountReader counts the uncompressed payload while it is streamed into a PVC.
@@ -84,6 +85,10 @@ func (c *PvcRestoreS3Command) Execute(_ []string) (err error) {
 	if err := c.Existing.Validate(); err != nil {
 		return err
 	}
+	helperResources, err := c.PvcHelperOptions.ResourceRequirements()
+	if err != nil {
+		return err
+	}
 
 	// Metadata is small and identifies the exact data object without downloading it.
 	store, err := newS3Store(c.context(), c.S3Destination)
@@ -123,6 +128,7 @@ func (c *PvcRestoreS3Command) Execute(_ []string) (err error) {
 			Dynamic:                client.Dynamic,
 			Image:                  c.Image,
 			ImagePullPolicy:        c.ImagePullPolicy,
+			Resources:              helperResources,
 			AgentBinary:            c.HelperBinaryPath,
 			URI:                    c.URI,
 			Endpoint:               moverEndpoint,
@@ -182,6 +188,11 @@ func restorePVCFromDirectory(
 	clientOptions kube.ClientOptions,
 	manager *progress.Manager,
 ) error {
+	helperResources, err := restoreOptions.PvcHelperOptions.ResourceRequirements()
+	if err != nil {
+		return err
+	}
+
 	// Select and open the exact revision before creating any Kubernetes helper resources.
 	source, err := parsePVCReference(sourceText, "source PVC")
 	if err != nil {
@@ -221,6 +232,7 @@ func restorePVCFromDirectory(
 			target,
 			artifact.Metadata.SizeBytes,
 			restoreOptions,
+			helperResources,
 			client,
 		)
 		if err != nil {
@@ -282,6 +294,7 @@ func newPVCRestoreStrategy(
 	target pvc.Ref,
 	requiredBytes int64,
 	options PvcRestoreOptions,
+	helperResources corev1.ResourceRequirements,
 	client *kube.Client,
 ) (*pvc.PodStrategy, error) {
 	if client == nil {
@@ -309,6 +322,7 @@ func newPVCRestoreStrategy(
 			ExpectedTargetIdentity: &targetIdentity,
 			ExpectedTargetSize:     requiredBytes,
 			ImagePullPolicy:        options.ImagePullPolicy,
+			Resources:              helperResources,
 		},
 	})
 	if err != nil {
