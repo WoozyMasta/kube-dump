@@ -1,30 +1,15 @@
-<!-- markdownlint-disable MD033 MD041 -->
-<div align="right">
-  <p>
-    <a href="./README.md">English</a> ·
-    <a href="./README.ru.md">Русский</a> ·
-    <a href="./README.zh.md">中文</a>
-  </p>
-</div>
-<div align="center">
-  <img src="./docs/assets/images/logo-wide.png" alt="kube-dump" width="600">
-  <p>
-    <a href="https://kube-dump.woozymasta.ru/zh/">文档网站</a> ·
-    <a href="./deploy/README.md">在 Kubernetes 中运行</a> ·
-    <a href="./docs/README.md">项目文档</a>
-  </p>
-</div>
-<!-- markdownlint-enable MD033 -->
+# kube-dump · [EN] · [RU] · [ZH]
 
-# kube-dump
+**kube-dump 是用于保存 Kubernetes 状态的工具。** 更多信息请参阅[文档网站][docs]。
 
-**kube-dump** 是一个用于保存 Kubernetes 环境实际状态的工具，适合在
-需要固定当前状态时使用。
+![kube-dump][logo]
 
 在测试 namespace、开发者沙箱、临时预发布环境或演示环境中，状态经常
 通过手动操作发生变化。有人更新 Deployment、创建 ConfigMap、试用新的
 operator、向 PVC 写入数据，或者运行临时镜像。即使环境后来发生变化或
 被删除，这些状态也可能在一段时间后再次需要。
+如需在集群内运行 kube-dump，请使用
+[Kustomize 组件][kubernetes]。
 
 这类环境不一定具备 GitOps、独立的备份系统或严格的生命周期。这并没有
 问题，但重要状态可能因此没有可移植的副本。
@@ -125,14 +110,17 @@ YAML 中的敏感值可以使用 age 或确定性的 AES-256-SIV 加密。资源
 
 ## 更多信息
 
-此 README 不是完整文档。安装、命令、配置文件、加密、PVC 和镜像的详细
-说明请参阅[文档][docs]。
-
-<!-- links -->
+此 README 不是完整文档。请查看[仓库中的文档][project-docs]或[文档网站][docs]。
+此 README 也提供[英文版][EN]和[俄文版][RU]。
 
 [docs]: https://kube-dump.woozymasta.ru/zh/
+[project-docs]: ./docs/README.md
 [ghr]: https://github.com/WoozyMasta/kube-dump/releases
 [kubernetes]: ./deploy/README.md
+[logo]: ./docs/assets/images/logo-wide.png
+[EN]: ./README.md
+[RU]: ./README.ru.md
+[ZH]: ./README.zh.md
 [backup]: ./internal/profile/builtin/backup.yaml
 [export]: ./internal/profile/builtin/export.yaml
 [raw]: ./internal/profile/builtin/raw.yaml

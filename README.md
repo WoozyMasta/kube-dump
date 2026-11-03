@@ -1,25 +1,9 @@
-<!-- markdownlint-disable MD033 MD041 -->
-<div align="right">
-  <p>
-    <a href="./README.md">English</a> ·
-    <a href="./README.ru.md">Русский</a> ·
-    <a href="./README.zh.md">中文</a>
-  </p>
-</div>
-<div align="center">
-  <img src="./docs/assets/images/logo-wide.png" alt="kube-dump" width="600">
-  <p>
-    <a href="https://kube-dump.woozymasta.ru/en/">Documentation site</a> ·
-    <a href="./deploy/README.md">Run in Kubernetes</a> ·
-    <a href="./docs/README.md">Project documentation</a>
-  </p>
-</div>
-<!-- markdownlint-enable MD033 -->
+# kube-dump · [EN] · [RU] · [ZH]
 
-# kube-dump
+**kube-dump is a utility for capturing Kubernetes state.**
+See the [documentation site][docs] for details.
 
-**kube-dump** is a utility for preserving the actual state
-of a Kubernetes environment when it needs to be captured.
+![kube-dump][logo]
 
 In a test namespace, developer sandbox, temporary staging environment,
 or demonstration environment, state is often changed manually.
@@ -27,6 +11,8 @@ Someone updates a Deployment, creates a ConfigMap, tries a new operator,
 writes data to a PVC, or runs a temporary image.
 That state may be needed again later,
 even if the environment has already changed or been deleted.
+To run kube-dump inside the cluster,
+use the [Kustomize components][kubernetes].
 
 These environments do not always have GitOps,
 a separate backup system, or a strict lifecycle.
@@ -62,8 +48,8 @@ ghcr.io/woozymasta/kube-dump:2.0.0-rc.2
 docker.io/woozymasta/kube-dump:2.0.0-rc.2
 ```
 
-For CI, debugging, and scripting, use the image with a shell and additional
-utilities:
+For CI, debugging, and scripting,
+use the image with a shell and additional utilities:
 
 ```text
 ghcr.io/woozymasta/kube-dump:2.0.0-rc.2-debug
@@ -135,14 +121,18 @@ Resource and PVC archives can additionally be protected with age.
 ## More information
 
 This README is not the complete documentation.
-Installation, commands, profiles, encryption, PVCs,
-and images are covered in the [documentation][docs].
-
-<!-- links -->
+Browse the [documentation source][project-docs],
+or visit the [documentation site][docs].
+This README is also available in [Russian][RU] and [Chinese][ZH].
 
 [docs]: https://kube-dump.woozymasta.ru/en/
+[project-docs]: ./docs/README.md
 [ghr]: https://github.com/WoozyMasta/kube-dump/releases
 [kubernetes]: ./deploy/README.md
+[logo]: ./docs/assets/images/logo-wide.png
+[EN]: ./README.md
+[RU]: ./README.ru.md
+[ZH]: ./README.zh.md
 [backup]: ./internal/profile/builtin/backup.yaml
 [export]: ./internal/profile/builtin/export.yaml
 [raw]: ./internal/profile/builtin/raw.yaml
