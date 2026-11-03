@@ -115,12 +115,12 @@ kind: Kustomization
 namespace: kube-dump
 
 resources:
-  - https://github.com/WoozyMasta/kube-dump//deploy/resources/cronjob?ref=v2.0.0-rc.2
+  - https://github.com/WoozyMasta/kube-dump//deploy/resources/cronjob?ref=v2.0.0-rc.3
 
 components:
-  - https://github.com/WoozyMasta/kube-dump//deploy?ref=v2.0.0-rc.2
-  - https://github.com/WoozyMasta/kube-dump//deploy/components/rbac/resource?ref=v2.0.0-rc.2
-  - https://github.com/WoozyMasta/kube-dump//deploy/components/storage/cronjob?ref=v2.0.0-rc.2
+  - https://github.com/WoozyMasta/kube-dump//deploy?ref=v2.0.0-rc.3
+  - https://github.com/WoozyMasta/kube-dump//deploy/components/rbac/resource?ref=v2.0.0-rc.3
+  - https://github.com/WoozyMasta/kube-dump//deploy/components/storage/cronjob?ref=v2.0.0-rc.3
 
 configMapGenerator:
   - name: kube-dump
@@ -188,7 +188,7 @@ kubectl create secret generic kube-dump \
 Файловые ключи и профили нужно отдельно смонтировать в контейнер;
 переменная окружения в таком случае содержит путь к смонтированному файлу.
 
-Ссылки `?ref=v2.0.0-rc.2` закрепляют версию исходных Kustomize-манифестов.
+Ссылки `?ref=v2.0.0-rc.3` закрепляют версию исходных Kustomize-манифестов.
 При обновлении kube-dump меняйте их на нужный тег релиза
 и проверяйте итоговую композицию.
 
@@ -234,12 +234,12 @@ kind: Kustomization
 namespace: kube-dump
 
 resources:
-  - https://github.com/WoozyMasta/kube-dump//deploy/resources/pod?ref=v2.0.0-rc.2
+  - https://github.com/WoozyMasta/kube-dump//deploy/resources/pod?ref=v2.0.0-rc.3
 
 components:
-  - https://github.com/WoozyMasta/kube-dump//deploy?ref=v2.0.0-rc.2
-  - https://github.com/WoozyMasta/kube-dump//deploy/components/rbac/resource?ref=v2.0.0-rc.2
-  - https://github.com/WoozyMasta/kube-dump//deploy/components/storage/pod?ref=v2.0.0-rc.2
+  - https://github.com/WoozyMasta/kube-dump//deploy?ref=v2.0.0-rc.3
+  - https://github.com/WoozyMasta/kube-dump//deploy/components/rbac/resource?ref=v2.0.0-rc.3
+  - https://github.com/WoozyMasta/kube-dump//deploy/components/storage/pod?ref=v2.0.0-rc.3
 
 patches:
   - path: patches/resource-save-pod.yaml

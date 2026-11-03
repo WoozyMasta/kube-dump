@@ -8,7 +8,7 @@
 CI 任务使用带有 `-debug` 后缀的镜像：
 
 ```text
-ghcr.io/woozymasta/kube-dump:2.0.0-rc.2-debug
+ghcr.io/woozymasta/kube-dump:2.0.0-rc.3-debug
 ```
 
 主镜像基于 `scratch` 构建，只包含 `kube-dump` 二进制文件。
@@ -27,7 +27,7 @@ debug 镜像包含 runner 和流水线脚本常用的 Shell 及标准工具，
 以下是计划任务的示例：
 
 ```yaml
-image: ghcr.io/woozymasta/kube-dump:2.0.0-rc.2-debug
+image: ghcr.io/woozymasta/kube-dump:2.0.0-rc.3-debug
 
 stages:
   - backup
@@ -121,7 +121,7 @@ jobs:
   backup:
     if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
-    container: ghcr.io/woozymasta/kube-dump:2.0.0-rc.2-debug
+    container: ghcr.io/woozymasta/kube-dump:2.0.0-rc.3-debug
     steps:
       - uses: actions/checkout@v4
       - name: Backup resources
@@ -149,7 +149,7 @@ jobs:
 ```yaml
 steps:
   - name: backup
-    image: ghcr.io/woozymasta/kube-dump:2.0.0-rc.2-debug
+    image: ghcr.io/woozymasta/kube-dump:2.0.0-rc.3-debug
     script: |
       kube-dump resource save s3 --s3-uri s3://backup/production/ \
         --profile /workspace/source/profiles/production.yaml --no-progress

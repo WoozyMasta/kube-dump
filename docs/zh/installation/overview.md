@@ -49,15 +49,15 @@ kube-dump resource save dir ./backup \
 镜像发布在以下仓库：
 
 ```text
-ghcr.io/woozymasta/kube-dump:2.0.0-rc.2
-docker.io/woozymasta/kube-dump:2.0.0-rc.2
+ghcr.io/woozymasta/kube-dump:2.0.0-rc.3
+docker.io/woozymasta/kube-dump:2.0.0-rc.3
 ```
 
 带有 Shell 和调试、CI 脚本所需工具的 debug 版本单独发布：
 
 ```text
-ghcr.io/woozymasta/kube-dump:2.0.0-rc.2-debug
-docker.io/woozymasta/kube-dump:2.0.0-rc.2-debug
+ghcr.io/woozymasta/kube-dump:2.0.0-rc.3-debug
+docker.io/woozymasta/kube-dump:2.0.0-rc.3-debug
 ```
 
 自动化任务应固定具体版本，不要使用浮动的 `latest` 标签。
@@ -71,10 +71,10 @@ Kubernetes 权限取决于所运行的命令和使用的配置文件。在 Kusto
 最小权限组件：`components/rbac/resource`、`components/rbac/image` 或
 `components/rbac/pvc`。详情参阅[Kubernetes 部署](kubernetes.md)。
 
-[Linux amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.2/kube-dump-linux-amd64
-[Linux arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.2/kube-dump-linux-arm64
-[macOS amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.2/kube-dump-darwin-amd64
-[macOS arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.2/kube-dump-darwin-arm64
-[Windows amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.2/kube-dump-windows-amd64.exe
-[Windows arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.2/kube-dump-windows-arm64.exe
+[Linux amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.3/kube-dump-linux-amd64
+[Linux arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.3/kube-dump-linux-arm64
+[macOS amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.3/kube-dump-darwin-amd64
+[macOS arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.3/kube-dump-darwin-arm64
+[Windows amd64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.3/kube-dump-windows-amd64.exe
+[Windows arm64]: https://github.com/WoozyMasta/kube-dump/releases/download/v2.0.0-rc.3/kube-dump-windows-arm64.exe
 [GitHub Releases]: https://github.com/WoozyMasta/kube-dump/releases

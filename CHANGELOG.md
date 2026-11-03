@@ -14,12 +14,14 @@ and this project adheres to [Semantic Versioning][].
 ### Removed
 -->
 
-## Unreleased
+## [2.0.0-rc.3][] - 2026-11-03
 
 ### Fixed
 
 * Preserve PVC symlink targets verbatim
   without following them during backup or restore.
+
+[2.0.0-rc.3]: https://github.com/WoozyMasta/a2s/compare/v2.0.0-rc.2...v2.0.0-rc.3
 
 ## [2.0.0-rc.2][] - 2026-11-02
 

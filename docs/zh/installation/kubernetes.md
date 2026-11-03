@@ -94,12 +94,12 @@ kind: Kustomization
 namespace: kube-dump
 
 resources:
-  - https://github.com/WoozyMasta/kube-dump//deploy/resources/cronjob?ref=v2.0.0-rc.2
+  - https://github.com/WoozyMasta/kube-dump//deploy/resources/cronjob?ref=v2.0.0-rc.3
 
 components:
-  - https://github.com/WoozyMasta/kube-dump//deploy?ref=v2.0.0-rc.2
-  - https://github.com/WoozyMasta/kube-dump//deploy/components/rbac/resource?ref=v2.0.0-rc.2
-  - https://github.com/WoozyMasta/kube-dump//deploy/components/storage/cronjob?ref=v2.0.0-rc.2
+  - https://github.com/WoozyMasta/kube-dump//deploy?ref=v2.0.0-rc.3
+  - https://github.com/WoozyMasta/kube-dump//deploy/components/rbac/resource?ref=v2.0.0-rc.3
+  - https://github.com/WoozyMasta/kube-dump//deploy/components/storage/cronjob?ref=v2.0.0-rc.3
 
 configMapGenerator:
   - name: kube-dump
@@ -155,7 +155,7 @@ kubectl create secret generic kube-dump \
 请使用 Secret Manager 或 CI Secret 提供真实值，不要在会保存到 Shell 历史的命令中写入
 literal。文件型密钥和配置文件应单独挂载；环境变量存放挂载后的文件路径。
 
-`?ref=v2.0.0-rc.2` 用于固定 Kustomize 清单版本。
+`?ref=v2.0.0-rc.3` 用于固定 Kustomize 清单版本。
 升级 kube-dump 时改为所需的 release tag。
 
 ## 验证和应用
@@ -198,12 +198,12 @@ kind: Kustomization
 namespace: kube-dump
 
 resources:
-  - https://github.com/WoozyMasta/kube-dump//deploy/resources/pod?ref=v2.0.0-rc.2
+  - https://github.com/WoozyMasta/kube-dump//deploy/resources/pod?ref=v2.0.0-rc.3
 
 components:
-  - https://github.com/WoozyMasta/kube-dump//deploy?ref=v2.0.0-rc.2
-  - https://github.com/WoozyMasta/kube-dump//deploy/components/rbac/resource?ref=v2.0.0-rc.2
-  - https://github.com/WoozyMasta/kube-dump//deploy/components/storage/pod?ref=v2.0.0-rc.2
+  - https://github.com/WoozyMasta/kube-dump//deploy?ref=v2.0.0-rc.3
+  - https://github.com/WoozyMasta/kube-dump//deploy/components/rbac/resource?ref=v2.0.0-rc.3
+  - https://github.com/WoozyMasta/kube-dump//deploy/components/storage/pod?ref=v2.0.0-rc.3
 
 patches:
   - path: patches/resource-save-pod.yaml
