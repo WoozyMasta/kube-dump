@@ -287,7 +287,7 @@ func validateArchiveHeader(header *tar.Header) (string, tarEntryType, error) {
 		if _, err := archiveFileMode(header.Mode); err != nil {
 			return "", 0, err
 		}
-		if err := validateExportSymlink(name, header.Linkname); err != nil {
+		if err := validateSymlinkTarget(name, header.Linkname); err != nil {
 			return "", 0, err
 		}
 

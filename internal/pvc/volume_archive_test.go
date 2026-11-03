@@ -197,6 +197,55 @@ func TestVolumeAgentPreservesSafeSymlink(t *testing.T) {
 	}
 }
 
+func TestVolumeAgentRoundTripsOpaqueSymlinkTargets(t *testing.T) {
+	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink target semantics are platform-dependent on Windows")
+	}
+
+	tests := []struct {
+		name   string
+		path   string
+		target string
+	}{
+		{name: "absolute device", path: "link", target: "/dev/null"},
+		{name: "relative escape", path: "nested/link", target: "../../outside"},
+		{name: "dangling absolute", path: "link", target: "/path/that/does/not/exist"},
+		{name: "backslashes", path: "link", target: `path\with\backslashes`},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			source := t.TempDir()
+			linkPath := filepath.Join(source, filepath.FromSlash(test.path))
+			if err := os.MkdirAll(filepath.Dir(linkPath), 0o700); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Symlink(test.target, linkPath); err != nil {
+				t.Skipf("symlink creation is unavailable: %v", err)
+			}
+
+			var archive bytes.Buffer
+			if err := ExportVolume(context.Background(), source, &archive); err != nil {
+				t.Fatalf("ExportVolume() error = %v", err)
+			}
+
+			destination := t.TempDir()
+			if err := ImportVolume(context.Background(), destination, &archive, ExistingEmptyOnly); err != nil {
+				t.Fatalf("ImportVolume() error = %v", err)
+			}
+
+			got, err := os.Readlink(filepath.Join(destination, filepath.FromSlash(test.path)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got != test.target {
+				t.Fatalf("restored symlink target = %q, want %q", got, test.target)
+			}
+		})
+	}
+}
+
 func TestVolumeAgentRestoresModesAndMtimes(t *testing.T) {
 	t.Parallel()
 	source := t.TempDir()
@@ -464,6 +513,50 @@ func rootArchiveTestHeader() tar.Header {
 	}
 }
 
+func makeTestVolumeArchive(t *testing.T, entries ...tar.Header) []byte {
+	t.Helper()
+	var archive bytes.Buffer
+	writer := tar.NewWriter(&archive)
+
+	rootHeader := rootArchiveTestHeader()
+	setTestArchiveOwner(&rootHeader)
+	if err := writer.WriteHeader(&rootHeader); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, header := range entries {
+		if header.Typeflag == 0 {
+			header.Typeflag = tar.TypeReg
+		}
+		setTestArchiveOwner(&header)
+		if err := writer.WriteHeader(&header); err != nil {
+			t.Fatal(err)
+		}
+		if header.Typeflag == tar.TypeReg && header.Size > 0 {
+			if _, err := writer.Write(make([]byte, header.Size)); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	return archive.Bytes()
+}
+
+func setTestArchiveOwner(header *tar.Header) {
+	if runtime.GOOS == "windows" {
+		header.Uid = 0
+		header.Gid = 0
+		return
+	}
+
+	header.Uid = os.Getuid()
+	header.Gid = os.Getgid()
+}
+
 func TestValidateArchiveMetadataRejectsOutOfRangeValues(t *testing.T) {
 	t.Parallel()
 	for _, test := range []struct {
@@ -496,6 +589,21 @@ func TestValidateArchiveHeaderRejectsOutOfRangeSymlinkMode(t *testing.T) {
 	}
 }
 
+func TestValidateArchiveHeaderRejectsInvalidSymlinkTargets(t *testing.T) {
+	t.Parallel()
+	for _, target := range []string{"", "bad\x00target"} {
+		header := &tar.Header{
+			Name:     "link",
+			Typeflag: tar.TypeSymlink,
+			Linkname: target,
+			Mode:     0o777,
+		}
+		if _, _, err := validateArchiveHeader(header); err == nil {
+			t.Errorf("validateArchiveHeader() accepted symlink target %q", target)
+		}
+	}
+}
+
 func TestArchiveFileModePreservesSpecialPermissionBits(t *testing.T) {
 	mode, err := archiveFileMode(0o7755)
 	if err != nil {
@@ -508,12 +616,120 @@ func TestArchiveFileModePreservesSpecialPermissionBits(t *testing.T) {
 	}
 }
 
-func TestVolumeAgentRejectsEscapingSymlink(t *testing.T) {
-	if err := validateExportSymlink("nested/link", "../../outside"); err == nil {
-		t.Fatal("validateExportSymlink() accepted an escaping target")
+func TestValidateSymlinkTarget(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name    string
+		target  string
+		wantErr bool
+	}{
+		{name: "backslashes are opaque", target: `foo\bar`},
+		{name: "absolute target", target: "/dev/null"},
+		{name: "relative escape", target: "../../outside"},
+		{name: "empty target", wantErr: true},
+		{name: "NUL target", target: "bad\x00target", wantErr: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			err := validateSymlinkTarget("link", test.target)
+			if (err != nil) != test.wantErr {
+				t.Fatalf("validateSymlinkTarget() error = %v, wantErr %t", err, test.wantErr)
+			}
+		})
 	}
-	if err := validateImportSymlink(t.TempDir(), "nested/link", "../../outside"); err == nil {
-		t.Fatal("validateImportSymlink() accepted an escaping target")
+}
+
+func TestValidateVolumeArchiveRejectsSymlinkParents(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name    string
+		target  string
+		reverse bool
+	}{
+		{name: "absolute target", target: "/tmp/outside"},
+		{name: "relative target", target: "../../outside"},
+		{name: "child precedes absolute symlink", target: "/tmp/outside", reverse: true},
+		{name: "child precedes relative symlink", target: "../../outside", reverse: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			symlink := tar.Header{Name: "escape", Typeflag: tar.TypeSymlink, Linkname: test.target, Mode: 0o777}
+			child := tar.Header{Name: "escape/pwned", Typeflag: tar.TypeReg, Mode: 0o600, Size: 1}
+			entries := []tar.Header{symlink, child}
+			if test.reverse {
+				entries[0], entries[1] = entries[1], entries[0]
+			}
+
+			archive := makeTestVolumeArchive(t, entries...)
+			if _, err := ValidateVolumeArchive(context.Background(), bytes.NewReader(archive)); err == nil {
+				t.Fatal("ValidateVolumeArchive() accepted a non-directory symlink parent")
+			}
+		})
+	}
+}
+
+func TestValidateVolumeArchiveRejectsSpecialEntries(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name      string
+		entryType byte
+	}{
+		{name: "character device", entryType: tar.TypeChar},
+		{name: "block device", entryType: tar.TypeBlock},
+		{name: "fifo", entryType: tar.TypeFifo},
+		{name: "hard link", entryType: tar.TypeLink},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			archive := makeTestVolumeArchive(t, tar.Header{
+				Name:     "special",
+				Typeflag: test.entryType,
+				Linkname: "target",
+				Mode:     0o600,
+			})
+			if _, err := ValidateVolumeArchive(context.Background(), bytes.NewReader(archive)); err == nil {
+				t.Fatalf("ValidateVolumeArchive() accepted special entry type %d", test.entryType)
+			}
+		})
+	}
+}
+
+func TestImportVerifiedVolumeRejectsSymlinkParentEscape(t *testing.T) {
+	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink target semantics are platform-dependent on Windows")
+	}
+
+	destination := t.TempDir()
+	outside := t.TempDir()
+	archive := makeTestVolumeArchive(t,
+		tar.Header{Name: "escape", Typeflag: tar.TypeSymlink, Linkname: outside, Mode: 0o777},
+		tar.Header{Name: "escape/pwned", Typeflag: tar.TypeReg, Mode: 0o600, Size: 1},
+	)
+	if err := ImportVerifiedVolume(context.Background(), destination, bytes.NewReader(archive), ExistingMerge); err == nil {
+		t.Fatal("ImportVerifiedVolume() accepted a path through an external symlink")
+	}
+	if _, err := os.Lstat(filepath.Join(outside, "pwned")); !os.IsNotExist(err) {
+		t.Fatalf("outside file was created, stat error = %v", err)
+	}
+}
+
+func TestImportVolumeMergeRejectsPreexistingSymlinkParent(t *testing.T) {
+	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink target semantics are platform-dependent on Windows")
+	}
+
+	destination := t.TempDir()
+	outside := t.TempDir()
+	if err := os.Symlink(outside, filepath.Join(destination, "escape")); err != nil {
+		t.Skipf("symlink creation is unavailable: %v", err)
+	}
+	archive := makeTestVolumeArchive(t,
+		tar.Header{Name: "escape/pwned", Typeflag: tar.TypeReg, Mode: 0o600, Size: 1},
+	)
+	if err := ImportVolume(context.Background(), destination, bytes.NewReader(archive), ExistingMerge); err == nil {
+		t.Fatal("ImportVolume() accepted a path through a pre-existing symlink")
+	}
+	if _, err := os.Lstat(filepath.Join(outside, "pwned")); !os.IsNotExist(err) {
+		t.Fatalf("outside file was created, stat error = %v", err)
 	}
 }
 

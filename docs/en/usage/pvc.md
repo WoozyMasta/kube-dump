@@ -97,13 +97,19 @@ less data travels through Kubernetes exec, but the helper uses more CPU.
 > Check the network and helper load;
 > increase helper resources only if it is the bottleneck.
 
-Archives preserve regular files, directories, relative symbolic links,
-permissions, numeric UID/GID, and modification time.
+Archives preserve regular files, directories, symbolic links
+with their exact targets, permissions, numeric UID/GID, and modification time.
 They do not preserve extended attributes, ACLs, sparse files,
 hard-link topology, devices, or other special files.
 Files with multiple hard links are rejected,
 and a Windows volume agent cannot restore non-zero numeric ownership
 or guarantee complete POSIX permission-bit fidelity.
+
+> [!CAUTION]
+> Symlink targets may refer outside the PVC and are preserved verbatim.
+> kube-dump does not follow them while archiving or extracting,
+> but the restored workload may follow them after it starts.
+> Restore only trusted archives.
 
 Restore validates the complete archive before writing the target.
 After extraction starts, restore is not transactional

@@ -152,11 +152,11 @@ func ExportVolume(ctx context.Context, root string, dst io.Writer) error {
 		name = filepath.ToSlash(name)
 		linkTarget := ""
 		if isSymlink {
-			linkTarget, err = os.Readlink(path)
+			linkTarget, err = volumeRoot.Readlink(filepath.FromSlash(name))
 			if err != nil {
 				return fmt.Errorf("read volume symlink %q: %w", name, err)
 			}
-			if err := validateExportSymlink(name, linkTarget); err != nil {
+			if err := validateSymlinkTarget(name, linkTarget); err != nil {
 				return err
 			}
 		}
@@ -370,9 +370,8 @@ func importVerifiedVolume(ctx context.Context, root string, src io.Reader, polic
 			cleared = true
 		}
 
-		// Only directories, regular files,
-		// and validated relative symlinks are part of the portable volume contract.
-		// Restore only the portable subset emitted by ExportVolume.
+		// Only directories, regular files, and symlinks are restored.
+		// Symlink targets remain opaque and are never used to resolve archive paths.
 		// In particular, never materialize devices or other special files from an untrusted archive.
 		switch entryType {
 		case tarEntryDirectory:
@@ -398,9 +397,6 @@ func importVerifiedVolume(ctx context.Context, root string, src io.Reader, polic
 			}
 
 		case tarEntrySymlink:
-			if err := validateImportSymlink(root, name, header.Linkname); err != nil {
-				return err
-			}
 			if err := makeRootDirectory(volumeRoot, filepath.Dir(filepath.FromSlash(name)), 0o700); err != nil {
 				return err
 			}
@@ -522,41 +518,14 @@ func safeArchiveName(name string) (string, error) {
 	return clean, nil
 }
 
-// validateExportSymlink rejects links that point outside the mounted volume.
-func validateExportSymlink(name, target string) error {
-	if target == "" ||
-		strings.ContainsRune(target, '\x00') ||
-		filepath.IsAbs(target) ||
-		strings.Contains(target, "\\") {
-		return fmt.Errorf("volume symlink %q has an unsafe target %q", name, target)
+// validateSymlinkTarget rejects only targets that cannot be represented by a filesystem symlink.
+// The target is opaque data and is never used to resolve archive entry paths.
+func validateSymlinkTarget(name, target string) error {
+	if target == "" {
+		return fmt.Errorf("volume symlink %q has an empty target", name)
 	}
-
-	resolved := filepath.Clean(filepath.Join(filepath.Dir(name), filepath.FromSlash(target)))
-	if resolved == ".." ||
-		strings.HasPrefix(resolved, ".."+string(filepath.Separator)) {
-		return fmt.Errorf("volume symlink %q escapes root: %q", name, target)
-	}
-
-	return nil
-}
-
-// validateImportSymlink applies the same containment check to archive entries.
-func validateImportSymlink(root, name, target string) error {
-	if err := validateExportSymlink(name, target); err != nil {
-		return err
-	}
-
-	resolved := filepath.Clean(filepath.Join(
-		root,
-		filepath.Dir(filepath.FromSlash(name)),
-		filepath.FromSlash(target),
-	))
-
-	relative, err := filepath.Rel(root, resolved)
-	if err != nil ||
-		relative == ".." ||
-		strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
-		return fmt.Errorf("volume symlink %q escapes root: %q", name, target)
+	if strings.ContainsRune(target, '\x00') {
+		return fmt.Errorf("volume symlink %q target contains NUL", name)
 	}
 
 	return nil

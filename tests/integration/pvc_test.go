@@ -265,6 +265,65 @@ func TestPVCDataRestoreAgainstKind(t *testing.T) {
 	assertPVCMode(t, environment, target.hostPath+"/permissions/file-setgid", 0o2755)
 }
 
+// TestPVCSymlinkTargetsRoundTripAgainstKind verifies the helper preserves symlink targets verbatim.
+func TestPVCSymlinkTargetsRoundTripAgainstKind(t *testing.T) {
+	environment := newIntegrationEnvironment(t)
+	source := createPVCFixture(t, environment)
+	target := createEmptyPVCFixture(t, environment, "symlink-restore-target")
+	seedCommand := fmt.Sprintf(`set -eu
+mkdir -p '%[1]s/postgres' '%[1]s/nested'
+ln -s /dev/null '%[1]s/postgres/postgresql.auto.conf'
+ln -s ../../outside '%[1]s/nested/external-relative'
+ln -s /path/that/does/not/exist '%[1]s/dangling-absolute'
+ln -s 'path\with\backslashes' '%[1]s/backslash-target'`, source.hostPath)
+	seedResult := environment.runtime.exec(
+		context.Background(),
+		environment.cluster+"-control-plane",
+		"sh", "-c", seedCommand,
+	)
+	if seedResult.Err != nil {
+		fatalCommand(t, "seed PVC symlink targets", seedResult)
+	}
+
+	destination := filepath.Join(environment.root, "pvc-symlink-roundtrip")
+	environment.mustRunKubeCLI(t, "save PVC symlink targets",
+		"pvc", "save", "dir", destination,
+		"--strategy", "pod",
+		"--image", source.helperImage,
+		"--namespace", source.namespace,
+		"--pvc", source.pvc,
+		"--compression", "none",
+	)
+	environment.mustRunKubeCLI(t, "restore PVC symlink targets",
+		"pvc", "restore", "dir", destination,
+		"--pvc", source.namespace+"/"+source.pvc,
+		"--target-pvc", target.namespace+"/"+target.pvc,
+		"--image", target.helperImage,
+	)
+
+	for _, test := range []struct {
+		path   string
+		target string
+	}{
+		{path: "postgres/postgresql.auto.conf", target: "/dev/null"},
+		{path: "nested/external-relative", target: "../../outside"},
+		{path: "dangling-absolute", target: "/path/that/does/not/exist"},
+		{path: "backslash-target", target: `path\with\backslashes`},
+	} {
+		result := environment.runtime.exec(
+			context.Background(),
+			environment.cluster+"-control-plane",
+			"readlink", target.hostPath+"/"+test.path,
+		)
+		if result.Err != nil {
+			fatalCommand(t, "read restored PVC symlink", result)
+		}
+		if got := strings.TrimSuffix(result.Stdout, "\n"); got != test.target {
+			t.Errorf("restored symlink %q target = %q, want %q", test.path, got, test.target)
+		}
+	}
+}
+
 // TestPVCEncryptedDataSaveAndExtractAgainstKind verifies age encryption of the complete PVC payload,
 // including filename detection, metadata, and extraction.
 func TestPVCEncryptedDataSaveAndExtractAgainstKind(t *testing.T) {

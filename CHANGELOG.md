@@ -14,6 +14,13 @@ and this project adheres to [Semantic Versioning][].
 ### Removed
 -->
 
+## Unreleased
+
+### Fixed
+
+* Preserve PVC symlink targets verbatim
+  without following them during backup or restore.
+
 ## [2.0.0-rc.2][] - 2026-11-02
 
 ### Added
