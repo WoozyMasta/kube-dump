@@ -1,0 +1,37 @@
+---
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+resources:
+  - serviceaccount.yaml
+
+replacements:
+  - source:
+      kind: ServiceAccount
+      name: kube-dump
+      fieldPath: metadata.namespace
+
+    targets:
+      - select:
+          kind: ClusterRoleBinding
+          name: kube-dump
+        fieldPaths:
+          - subjects.0.namespace
+
+      - select:
+          kind: ClusterRoleBinding
+          name: kube-dump-resources
+        fieldPaths:
+          - subjects.0.namespace
+
+      - select:
+          kind: ClusterRoleBinding
+          name: kube-dump-images
+        fieldPaths:
+          - subjects.0.namespace
+
+      - select:
+          kind: ClusterRoleBinding
+          name: kube-dump-pvc
+        fieldPaths:
+          - subjects.0.namespace

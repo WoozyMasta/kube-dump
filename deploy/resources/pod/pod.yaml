@@ -1,0 +1,53 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kube-dump
+
+spec:
+  serviceAccountName: kube-dump
+  restartPolicy: Never
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    runAsGroup: 65532
+    fsGroup: 65532
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile:
+      type: RuntimeDefault
+
+  containers:
+    - name: kube-dump
+      image: ghcr.io/woozymasta/kube-dump:latest
+      imagePullPolicy: IfNotPresent
+
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - ALL
+
+      envFrom:
+        - configMapRef:
+            name: kube-dump
+            optional: true
+        - secretRef:
+            name: kube-dump
+            optional: true
+
+      resources:
+        requests:
+          cpu: 500m
+          memory: 200Mi
+        limits:
+          cpu: 500m
+          memory: 200Mi
+
+      volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+  volumes:
+    - name: tmp
+      emptyDir: {}

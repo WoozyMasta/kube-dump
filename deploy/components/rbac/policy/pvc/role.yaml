@@ -1,0 +1,37 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kube-dump-pvc
+
+rules:
+  # Read the selected claims and inspect Pods that currently use them.
+  - apiGroups: [""]
+    resources: [persistentvolumeclaims, pods, resourcequotas]
+    verbs: [get, list]
+
+  # Temporary helper Pods are used for local and direct-S3 transfers.
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [create, delete]
+  - apiGroups: [""]
+    resources: [pods/exec]
+    verbs: [create]
+
+  # Static S3 credentials are placed in a short-lived Secret when supplied.
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [create, delete]
+
+  # snapshot-copy creates a temporary VolumeSnapshot and clone PVC.
+  - apiGroups: [snapshot.storage.k8s.io]
+    resources: [volumesnapshots]
+    verbs: [create, get, delete]
+
+  # PVC restore serializes concurrent writers with a namespaced Lease.
+  - apiGroups: [coordination.k8s.io]
+    resources: [leases]
+    verbs: [create, get, update]
+  - apiGroups: [""]
+    resources: [persistentvolumeclaims]
+    verbs: [create, delete]

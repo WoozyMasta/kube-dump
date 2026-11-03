@@ -1,0 +1,9 @@
+apiVersion: database.example.io/v1
+kind: Cluster
+metadata:
+    name: database
+    namespace: default
+spec:
+    password: !kube-dump/aes-siv |-
+        v1:0011223344556677:H3t-IdbrUUFrySp_iZclwthIbwCVs_3_
+    replicas: 3

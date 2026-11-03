@@ -1,0 +1,170 @@
+site_name: kube-dump
+site_description: Cross-platform Kubernetes backup and export utility for resources, PVC data, and container images.
+site_url: https://kube-dump.woozymasta.ru/
+repo_name: WoozyMasta/kube-dump
+repo_url: https://github.com/WoozyMasta/kube-dump
+edit_uri: edit/master/docs/
+
+exclude_docs: |
+  /_mkdocs/
+  /README.md
+
+copyright: Copyright &copy; 2021-2026 WoozyMasta
+
+extra:
+  generator: false
+
+extra_css:
+  - assets/stylesheets/extra.css
+
+extra_javascript:
+  - assets/javascripts/language-redirect.js
+
+theme:
+  name: material
+  custom_dir: docs/_mkdocs/overrides
+  logo: assets/images/logo.png
+  favicon: assets/images/logo.png
+  features:
+    - content.code.copy
+    - content.tabs.link
+    - toc.integrate
+    - navigation.top
+    - navigation.indexes
+    - navigation.path
+    - navigation.sections
+    - navigation.expand
+    - navigation.footer
+    - search.highlight
+    - search.suggest
+
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: black
+      accent: cyan
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: cyan
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+  font:
+    text: Roboto
+    code: JetBrains Mono
+
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+plugins:
+  - search
+  - i18n:
+      docs_structure: folder
+      fallback_to_default: true
+      reconfigure_material: true
+      reconfigure_search: true
+
+      languages:
+        - locale: en
+          default: true
+          name: English
+          build: true
+
+        - locale: ru
+          name: Русский
+          build: true
+          admonition_translations:
+            note: Примечание
+            tip: Совет
+            important: Важно
+            warning: Предупреждение
+            caution: Внимание
+          nav_translations:
+            Home: Главная
+            Installation and usage: Установка и запуск
+            Usage: Использование
+            References: Справочники
+            Kubernetes deployment: Развёртывание в Kubernetes
+            CI integration: Интеграция с CI
+            Kubernetes resources: Ресурсы Kubernetes
+            PVC data: Данные PVC
+            Container images: Контейнерные образы
+            Profiles: Профили
+            Encryption: Шифрование
+            Recovery: Восстановление
+            CLI usage: Использование CLI
+            Operations: Операционные сценарии
+            CLI reference: Справочник CLI
+            Profile reference: Справочник профиля
+            Overview: Обзор
+
+        - locale: zh
+          name: 中文
+          build: true
+          admonition_translations:
+            note: 注意
+            tip: 提示
+            important: 重要
+            warning: 警告
+            caution: 谨慎
+          nav_translations:
+            Home: 首页
+            Installation and usage: 安装与运行
+            Usage: 使用
+            References: 参考
+            Kubernetes deployment: 在 Kubernetes 中部署
+            CI integration: CI 集成
+            Kubernetes resources: Kubernetes 资源
+            PVC data: PVC 数据
+            Container images: 容器镜像
+            Profiles: 配置文件
+            Encryption: 加密
+            Recovery: 恢复
+            CLI usage: CLI 使用
+            Operations: 运维场景
+            CLI reference: CLI 参考
+            Profile reference: 配置文件参考
+            Overview: 概览
+
+nav:
+  - Home: README.md
+  - Installation and usage:
+      - Overview: installation/overview.md
+      - Kubernetes deployment: installation/kubernetes.md
+      - CI integration: installation/ci.md
+  - Usage:
+      - Kubernetes resources: usage/resource.md
+      - PVC data: usage/pvc.md
+      - Container images: usage/image.md
+      - Profiles: usage/profiles.md
+      - Encryption: usage/encryption.md
+      - Recovery: usage/recovery.md
+      - CLI usage: usage/cli-usage.md
+      - Operations: usage/operations.md
+  - References:
+      - CLI reference: cli.md
+      - Profile reference: profile.md
+
+hooks:
+  - docs/_mkdocs/extensions/gfm_alerts.py

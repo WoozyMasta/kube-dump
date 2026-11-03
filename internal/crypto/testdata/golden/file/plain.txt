@@ -1,0 +1,2 @@
+kube-dump age golden file
+with two lines

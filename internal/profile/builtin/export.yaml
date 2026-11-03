@@ -1,0 +1,196 @@
+---
+apiVersion: kube-dump/v2
+kind: Profile
+metadata:
+  name: export
+  description: Clean Kubernetes resources for sharing or redeployment
+
+# Kubernetes objects selected for a clean, portable manifest export.
+resources:
+  # Omit explicitly empty fields while keeping meaningful zero values.
+  omitEmpty: true
+
+  # Select the Kubernetes resource types and objects included in the export.
+  selection:
+    # This is an explicit allowlist; transient Pods, Jobs, and Events are intentionally absent.
+    # A leading ! removes one object from a broader entry.
+    resources:
+      - core/v1/namespaces
+      - core/v1/configmaps
+      - "!core/v1/configmaps:kube-root-ca.crt"
+      - core/v1/limitranges
+      - core/v1/persistentvolumeclaims
+      - core/v1/resourcequotas
+      - core/v1/secrets
+      - core/v1/serviceaccounts
+      - core/v1/services
+      - apps/v1/daemonsets
+      - apps/v1/deployments
+      - apps/v1/statefulsets
+      - batch/v1/cronjobs
+      - networking.k8s.io/v1/ingresses
+      - networking.k8s.io/v1/ingressclasses
+      - networking.k8s.io/v1/networkpolicies
+      - gateway.networking.k8s.io/v1/backendtlspolicies
+      - gateway.networking.k8s.io/v1/gateways
+      - gateway.networking.k8s.io/v1/gatewayclasses
+      - gateway.networking.k8s.io/v1/grpcroutes
+      - gateway.networking.k8s.io/v1/httproutes
+      - gateway.networking.k8s.io/v1/referencegrants
+      - gateway.networking.k8s.io/v1/tcproutes
+      - gateway.networking.k8s.io/v1/tlsroutes
+      - gateway.networking.k8s.io/v1/udproutes
+      - policy/v1/poddisruptionbudgets
+      - autoscaling/v2/horizontalpodautoscalers
+      - rbac.authorization.k8s.io/v1/clusterrolebindings
+      - rbac.authorization.k8s.io/v1/clusterroles
+      - rbac.authorization.k8s.io/v1/rolebindings
+      - rbac.authorization.k8s.io/v1/roles
+      - apiextensions.k8s.io/v1/customresourcedefinitions
+      - monitoring.coreos.com/*/alertmanagers
+      - monitoring.coreos.com/*/podmonitors
+      - monitoring.coreos.com/*/probes
+      - monitoring.coreos.com/*/prometheuses
+      - monitoring.coreos.com/*/prometheusrules
+      - monitoring.coreos.com/*/servicemonitors
+      - monitoring.coreos.com/*/thanosrulers
+      - cert-manager.io/*/certificates
+      - cert-manager.io/*/certificaterequests
+      - cert-manager.io/*/clusterissuers
+      - cert-manager.io/*/issuers
+      - external-secrets.io/*/clustersecretstores
+      - external-secrets.io/*/externalsecrets
+      - external-secrets.io/*/secretstores
+      - argoproj.io/*/applications
+      - argoproj.io/*/applicationsets
+      - argoproj.io/*/appprojects
+      - source.toolkit.fluxcd.io/*/buckets
+      - source.toolkit.fluxcd.io/*/gitrepositories
+      - source.toolkit.fluxcd.io/*/helmcharts
+      - source.toolkit.fluxcd.io/*/helmrepositories
+      - source.toolkit.fluxcd.io/*/ocirepositories
+      - helm.toolkit.fluxcd.io/*/helmreleases
+      - kustomize.toolkit.fluxcd.io/*/kustomizations
+
+  # Clean or encrypt fields after a selected object has been collected.
+  rules:
+    # Remove values assigned by the API server or changed during normal operation.
+    - name: generated-and-runtime-state
+      match:
+        resources:
+          - "*"
+      remove:
+        - .metadata.uid
+        - .metadata.resourceVersion
+        - .metadata.generation
+        - .metadata.creationTimestamp
+        - .metadata.managedFields
+        - .metadata.deletionTimestamp
+        - .metadata.deletionGracePeriodSeconds
+        - .metadata.ownerReferences
+        - .metadata.finalizers
+        - .metadata.generateName
+        - .status
+        - .metadata.annotations["kubectl.kubernetes.io/last-applied-configuration"]
+        - .metadata.annotations["deployment.kubernetes.io/revision"]
+        - .metadata.annotations["deprecated.daemonset.template.generation"]
+        - .metadata.annotations["control-plane.alpha.kubernetes.io/leader"]
+        - .metadata.annotations["kubectl.kubernetes.io/restartedAt"]
+
+    # Remove controller bookkeeping that is not part of the desired configuration.
+    - name: argocd
+      match:
+        resources:
+          - "*"
+      remove:
+        - .metadata.annotations["argocd.argoproj.io/tracking-id"]
+        - .metadata.annotations["argocd.argoproj.io/refresh"]
+        - .metadata.annotations["argocd.argoproj.io/application-set-refresh"]
+
+    # Remove reconciliation triggers while retaining Flux resources themselves.
+    - name: flux
+      match:
+        resources:
+          - "*"
+      remove:
+        - .metadata.annotations["reconcile.fluxcd.io/requestedAt"]
+        - .metadata.annotations["reconcile.fluxcd.io/forceAt"]
+
+    # Remove one-shot synchronization triggers while retaining SecretStore configuration.
+    - name: external-secrets
+      match:
+        resources:
+          - "*"
+      remove:
+        - .metadata.annotations["external-secrets.io/force-sync"]
+
+    # Remove Helm release bookkeeping that can be regenerated from the manifests.
+    - name: helm
+      match:
+        resources:
+          - "*"
+      remove:
+        - .metadata.annotations["meta.helm.sh/release-name"]
+        - .metadata.annotations["meta.helm.sh/release-namespace"]
+        - .metadata.labels["helm.sh/chart"]
+
+    # Remove Kustomize build metadata that describes the source file, not the object.
+    - name: kustomize
+      match:
+        resources:
+          - "*"
+      remove:
+        - .metadata.labels["app.kubernetes.io/managed-by"]
+        - .metadata.annotations["config.kubernetes.io/origin"]
+        - .metadata.annotations["config.kubernetes.io/path"]
+        - .metadata.annotations["config.kubernetes.io/index"]
+        - .metadata.annotations["config.kubernetes.io/local-config"]
+        - .metadata.annotations["internal.config.kubernetes.io/path"]
+        - .metadata.annotations["internal.config.kubernetes.io/index"]
+        - .metadata.annotations["internal.config.kubernetes.io/transformer"]
+        - .metadata.annotations["internal.config.kubernetes.io/needsHashSuffix"]
+        - .metadata.annotations["internal.config.kubernetes.io/previousNames"]
+        - .metadata.annotations["internal.config.kubernetes.io/previousNamespaces"]
+        - .metadata.annotations["internal.config.kubernetes.io/previousKinds"]
+
+    # The bound volume is infrastructure-specific and is not portable to a new cluster.
+    - name: pvc-binding
+      match:
+        resources:
+          - core/v1/persistentvolumeclaims
+      remove:
+        - .spec.volumeName
+
+# PVC data is selected independently and remains broad because CI claims may contain user data.
+pvc: {}
+
+# Images are collected from Pods, excluding known disposable execution environments.
+images:
+  # Select the Pods and image references included in the export.
+  selection:
+    # Exclude known disposable execution Pods with negative label requirements.
+    labelSelector:
+      matchExpressions:
+        # GitLab Runner job Pods are recreated for individual CI jobs.
+        - key: job.runner.gitlab.com/pod
+          operator: DoesNotExist
+
+        # Tekton PipelineRun-created and standalone TaskRun Pods are temporary.
+        - key: tekton.dev/pipelineRun
+          operator: DoesNotExist
+        - key: tekton.dev/taskRun
+          operator: DoesNotExist
+
+        # Flux controller Pods are deployment machinery, not application workloads.
+        - key: app.kubernetes.io/part-of
+          operator: NotIn
+          values:
+            - flux
+
+        # ARC runner Pods are disposable execution environments.
+        - key: actions-ephemeral-runner
+          operator: DoesNotExist
+
+        # Argo Workflows execution Pods are created for individual workflows.
+        - key: workflows.argoproj.io/workflow
+          operator: DoesNotExist

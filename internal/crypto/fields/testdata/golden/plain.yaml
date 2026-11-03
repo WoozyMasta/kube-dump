@@ -1,0 +1,8 @@
+apiVersion: database.example.io/v1
+kind: Cluster
+metadata:
+  name: database
+  namespace: default
+spec:
+  password: secret
+  replicas: 3

@@ -1,0 +1,14 @@
+/* Give the standard logo and site name a little more room in the header. */
+.md-header,
+.md-header__inner {
+  min-height: 3.25rem;
+}
+
+.md-header__button.md-logo {
+  padding: 0.3rem;
+}
+
+.md-header__button.md-logo img {
+  height: 2.6rem;
+  width: 2.6rem;
+}
